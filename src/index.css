@@ -314,3 +314,42 @@
   color: white;
   transform: translateY(-2px);
 }
+
+/* Pill-shaped Cards */
+.scalloped-card {
+  position: relative;
+  border-radius: 2rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+
+.scalloped-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Scalloped card colors */
+.scalloped-brown {
+  background: linear-gradient(135deg, #F3CD9E 0%, #F7E7CB 100%);
+}
+
+.scalloped-pink {
+  background: linear-gradient(135deg, #F8BBD9 0%, #FCE7F0 100%);
+}
+
+.scalloped-blue {
+  background: linear-gradient(135deg, #B3E5FC 0%, #E1F5FE 100%);
+}
+
+.scalloped-purple {
+  background: linear-gradient(135deg, #DDD6FE 0%, #EDE9FE 100%);
+}
+
+.scalloped-green {
+  background: linear-gradient(135deg, #C8E6C9 0%, #E8F5E8 100%);
+}
+
+.scalloped-orange {
+  background: linear-gradient(135deg, #FFCC80 0%, #FFE0B2 100%);
+}

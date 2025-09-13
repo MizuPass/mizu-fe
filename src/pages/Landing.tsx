@@ -1,4 +1,4 @@
-import { ArrowRight, Zap, Globe, Star, Heart, Eye, Lock, Sparkles, CheckCircle, TrendingUp, Award } from "lucide-react"
+import { ArrowRight, Zap, Globe, Star, Heart, Eye, Lock, Sparkles, CheckCircle, TrendingUp, Award, Calendar, MapPin, Clock, Music, Gamepad2, Gift, Ticket } from "lucide-react"
 import { MizuConnectButton } from "../components/ConnectButton"
 
 export default function Landing() {
@@ -70,6 +70,213 @@ export default function Landing() {
                 alt="MizuPass Architecture"
                 className="w-full h-auto max-h-96 object-contain opacity-90"
               />
+            </div>
+          </section>
+
+          {/* Live Events & Ticketing */}
+          <section id="events" className="mb-24">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Live Events & Ticketing
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Experience seamless, privacy-first ticketing for concerts, gaming tournaments, and loyalty programs with JETH-to-MJPY payments
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {/* Event Card 1 - Concert */}
+              <div className="scalloped-card scalloped-brown h-96 relative overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400/40 to-orange-500/40">
+                  <div className="w-full h-full bg-cover bg-center opacity-30" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23F3CD9E'/%3E%3Cg fill='%23D4A574' opacity='0.3'%3E%3Ccircle cx='100' cy='100' r='30'/%3E%3Ccircle cx='300' cy='150' r='25'/%3E%3Ccircle cx='200' cy='250' r='35'/%3E%3Cpath d='M50 200 Q150 150 250 200 Q350 250 380 180' stroke='%23B8935A' stroke-width='3' fill='none'/%3E%3C/g%3E%3C/svg%3E")`
+                  }}></div>
+                </div>
+
+                <div className="relative z-10 h-full p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-white/20 rounded-lg p-2 backdrop-blur-sm">
+                      <Music className="w-5 h-5 text-amber-800" />
+                    </div>
+                    <span className="text-sm font-medium text-amber-800 bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                      Live Concert
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-amber-900 mb-2 leading-tight">
+                    Tokyo Dream Festival
+                  </h3>
+
+                  <div className="text-lg font-bold text-amber-900 mb-3">
+                    ¥8,500 MJPY
+                  </div>
+
+                  <p className="text-sm text-amber-800 mb-4 flex-grow leading-relaxed">
+                    Premium music festival featuring international artists. Secure your spot with privacy-protected payments.
+                  </p>
+
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center text-amber-800">
+                      <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">Tokyo Dome, Japan</span>
+                    </div>
+                    <div className="flex items-center text-amber-800">
+                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">April 15, 2025</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-white/30 hover:bg-white/40 text-amber-900 font-medium py-2.5 rounded-lg transition-all duration-200 backdrop-blur-sm">
+                    Buy Ticket
+                  </button>
+                </div>
+              </div>
+
+              {/* Event Card 2 - Gaming Tournament */}
+              <div className="scalloped-card scalloped-pink h-96 relative overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-pink-400/40 to-rose-500/40">
+                  <div className="w-full h-full bg-cover bg-center opacity-30" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23F8BBD9'/%3E%3Cg fill='%23E691B8' opacity='0.4'%3E%3Crect x='50' y='50' width='80' height='60' rx='10'/%3E%3Crect x='270' y='180' width='80' height='60' rx='10'/%3E%3Cpolygon points='200,80 220,120 180,120' fill='%23D4749A'/%3E%3Ccircle cx='320' cy='80' r='20'/%3E%3Cpath d='M60 200 L120 180 L180 200 L240 180' stroke='%23C856A0' stroke-width='4' fill='none'/%3E%3C/g%3E%3C/svg%3E")`
+                  }}></div>
+                </div>
+
+                <div className="relative z-10 h-full p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-white/20 rounded-lg p-2 backdrop-blur-sm">
+                      <Gamepad2 className="w-5 h-5 text-pink-800" />
+                    </div>
+                    <span className="text-sm font-medium text-pink-800 bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                      Gaming
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-pink-900 mb-2 leading-tight">
+                    Shibuya Esports Cup
+                  </h3>
+
+                  <div className="text-lg font-bold text-pink-900 mb-3">
+                    ¥2,800 MJPY
+                  </div>
+
+                  <p className="text-sm text-pink-800 mb-4 flex-grow leading-relaxed">
+                    Ultimate gaming tournament with prize pools and exclusive NFT rewards. Anonymous entry guaranteed.
+                  </p>
+
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center text-pink-800">
+                      <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">Virtual Arena</span>
+                    </div>
+                    <div className="flex items-center text-pink-800">
+                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">March 28, 2025</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-white/30 hover:bg-white/40 text-pink-900 font-medium py-2.5 rounded-lg transition-all duration-200 backdrop-blur-sm">
+                    Join Tournament
+                  </button>
+                </div>
+              </div>
+
+              {/* Event Card 3 - Loyalty Program */}
+              <div className="scalloped-card scalloped-blue h-96 relative overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-cyan-500/40">
+                  <div className="w-full h-full bg-cover bg-center opacity-30" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23B3E5FC'/%3E%3Cg fill='%2381D4FA' opacity='0.5'%3E%3Cstar cx='100' cy='80' r='25' fill='%2329B6F6'/%3E%3Cstar cx='300' cy='150' r='20' fill='%2329B6F6'/%3E%3Cstar cx='200' cy='220' r='30' fill='%2329B6F6'/%3E%3Cpath d='M50 150 Q200 100 350 150 Q250 200 50 150 Z' fill='%2303A9F4' opacity='0.3'/%3E%3C/g%3E%3C/svg%3E")`
+                  }}></div>
+                </div>
+
+                <div className="relative z-10 h-full p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-white/20 rounded-lg p-2 backdrop-blur-sm">
+                      <Gift className="w-5 h-5 text-blue-800" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-800 bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                      Loyalty
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-blue-900 mb-2 leading-tight">
+                    Tokyo Premium Pass
+                  </h3>
+
+                  <div className="text-lg font-bold text-blue-900 mb-3">
+                    ¥15,000 MJPY
+                  </div>
+
+                  <p className="text-sm text-blue-800 mb-4 flex-grow leading-relaxed">
+                    Annual membership with exclusive access to premium venues, events, and rewards across Tokyo.
+                  </p>
+
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center text-blue-800">
+                      <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">Tokyo Network</span>
+                    </div>
+                    <div className="flex items-center text-blue-800">
+                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">365 Days Access</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-white/30 hover:bg-white/40 text-blue-900 font-medium py-2.5 rounded-lg transition-all duration-200 backdrop-blur-sm">
+                    Get Membership
+                  </button>
+                </div>
+              </div>
+
+              {/* Event Card 4 - Exclusive Event */}
+              <div className="scalloped-card scalloped-purple h-96 relative overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/40 to-violet-500/40">
+                  <div className="w-full h-full bg-cover bg-center opacity-30" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23DDD6FE'/%3E%3Cg fill='%23C4B5FD' opacity='0.6'%3E%3Cellipse cx='120' cy='120' rx='40' ry='20' fill='%23A78BFA'/%3E%3Cellipse cx='280' cy='180' rx='35' ry='25' fill='%23A78BFA'/%3E%3Cpath d='M80 200 Q200 160 320 200 Q280 240 120 220 Q60 210 80 200' fill='%238B5CF6' opacity='0.4'/%3E%3Ccircle cx='200' cy='80' r='15' fill='%237C3AED'/%3E%3C/g%3E%3C/svg%3E")`
+                  }}></div>
+                </div>
+
+                <div className="relative z-10 h-full p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="bg-white/20 rounded-lg p-2 backdrop-blur-sm">
+                      <Ticket className="w-5 h-5 text-purple-800" />
+                    </div>
+                    <span className="text-sm font-medium text-purple-800 bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                      Sold Out
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-purple-900 mb-2 leading-tight">
+                    Midnight Jazz Lounge
+                  </h3>
+
+                  <div className="text-lg font-bold text-purple-900 mb-3">
+                    ¥12,000 MJPY
+                  </div>
+
+                  <p className="text-sm text-purple-800 mb-4 flex-grow leading-relaxed">
+                    Intimate jazz experience in Tokyo's most exclusive venue. Limited seating, maximum privacy.
+                  </p>
+
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center text-purple-800">
+                      <MapPin className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">Roppongi, Tokyo</span>
+                    </div>
+                    <div className="flex items-center text-purple-800">
+                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm">Every Saturday</span>
+                    </div>
+                  </div>
+
+                  <button className="w-full bg-white/30 hover:bg-white/40 text-purple-900 font-medium py-2.5 rounded-lg transition-all duration-200 opacity-60 cursor-not-allowed backdrop-blur-sm">
+                    Join Waitlist
+                  </button>
+                </div>
+              </div>
+
             </div>
           </section>
 
