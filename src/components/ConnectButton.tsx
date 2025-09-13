@@ -59,46 +59,16 @@ export const MizuConnectButton = () => {
               }
 
               return (
-                <div className="flex gap-2">
-                  <button
-                    onClick={openChainModal}
-                    className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-3 rounded-lg transition-colors duration-200 flex items-center gap-2"
-                    type="button"
-                  >
-                    {chain.hasIcon && (
-                      <div
-                        style={{
-                          background: chain.iconBackground,
-                          width: 12,
-                          height: 12,
-                          borderRadius: 999,
-                          overflow: 'hidden',
-                          marginRight: 4,
-                        }}
-                      >
-                        {chain.iconUrl && (
-                          <img
-                            alt={chain.name ?? 'Chain icon'}
-                            src={chain.iconUrl}
-                            style={{ width: 12, height: 12 }}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {chain.name}
-                  </button>
-
-                  <button
-                    onClick={openAccountModal}
-                    type="button"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-                  >
-                    {account.displayName}
-                    {account.displayBalance
-                      ? ` (${account.displayBalance})`
-                      : ''}
-                  </button>
-                </div>
+                <button
+                  onClick={openAccountModal}
+                  type="button"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  {account.displayName}
+                  {account.displayBalance
+                    ? ` (${account.displayBalance})`
+                    : ''}
+                </button>
               );
             })()}
           </div>
