@@ -1,5 +1,6 @@
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { MizuConnectButton } from '../components/ConnectButton'
 const RootLayout = () => (
   <div 
     className="min-h-screen overflow-x-hidden"
@@ -31,9 +32,7 @@ const RootLayout = () => (
         </a>
       </div>
 
-      <button className="text-gray-600 hover:text-gray-900 font-medium transition-colors duration-200 cursor-pointer bg-gradient-to-r from-blue-300 to-purple-100 rounded-lg px-4 py-2">
-        Launch App
-      </button>
+      <MizuConnectButton />
     </header>
 
     <main className="relative">
