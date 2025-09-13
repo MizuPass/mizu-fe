@@ -6,25 +6,36 @@ export default function Landing() {
       <div className="tree-decoration tree-left"></div>
       <div className="tree-decoration tree-right"></div>
       <main className="relative z-10">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-6xl mx-auto px-8 py-12">
           <div>
             {/* Hero Section */}
-            <div className="text-center mb-16">
+            <div className=" flex flex-col-reverse md:flex-row gap-6 text-center md:text-left mb-16 px-2">
               {/* <Badge className="bg-[#87CEEB]/20 text-[#4682B4] border-[#87CEEB]/30 mb-6 px-6 py-2 text-lg font-medium rounded-full">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Privacy-First Ticketing Platform
               </Badge> */}
-              <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-8 text-balance leading-tight font-sans">
-                Find Your Next{" "}
-                <span className="bg-gradient-to-r from-[#87CEEB] via-[#4682B4] to-[#98FB98] bg-clip-text text-transparent">
-                  Event Experience
-                </span>{" "}
-                in Japan
+              <div className="flex flex-col justify-between gap-6">
+                <h1 className="text-xl xs:text-3xl sm:text-3xl md:text-5xl lg:text-7xl xl:text-7xl font-bold text-gray-900 text-balance leading-tight font-sans">
+                Privacy First, {" "}
+                <span >
+                  Universal Ticketing Platform
+                </span>
               </h1>
-              <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto text-pretty leading-relaxed font-sans">
+              <p className="  md:flex md:text-md md:text-lg lg:text-xl text-gray-600  text-pretty leading-relaxed ">
                 Experience seamless event ticketing with complete privacy protection, universal KYC verification, and
                 transparent workflows powered by blockchain technology.
               </p>
+              </div>
+
+              <div className=" items-center">
+                <img 
+                  src="/mizuPass.svg" 
+                  alt="MizuPass Logo" 
+                  className="w-full object-contain"
+                />
+              </div>
+
+
             </div>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
