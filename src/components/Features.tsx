@@ -49,10 +49,10 @@ export default function Features() {
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12 sm:mb-14 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-4 sm:mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-4 sm:mb-6 font-sans">
             Why Choose <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">MizuPass?</span>
           </h2>
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-0">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl lg:max-w-3xl mx-auto px-4 sm:px-0 font-sans">
             The first ticketing platform that combines cutting-edge privacy technology 
             with seamless user experience and regulatory compliance.
           </p>
@@ -75,10 +75,10 @@ export default function Features() {
 
               {/* Content */}
               <div className="flex-grow">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 font-sans">
                   {feature.title}
                 </h3>
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base text-gray-600 leading-relaxed font-sans">
                   {feature.description}
                 </p>
               </div>
@@ -96,8 +96,8 @@ export default function Features() {
         {/* Bottom CTA */}
         <div className="text-center mt-12 sm:mt-16 px-4 sm:px-0">
           <div className="inline-flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 px-6 sm:px-8 py-4 bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-full shadow-lg border border-white/50">
-            <span className="text-sm sm:text-base text-gray-700 font-medium text-center">Ready to experience the future of ticketing?</span>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-105 text-sm sm:text-base">
+            <span className="text-sm sm:text-base text-gray-700 font-medium text-center font-sans">Ready to experience the future of ticketing?</span>
+            <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-105 text-sm sm:text-base font-sans">
               Get Started
             </button>
           </div>

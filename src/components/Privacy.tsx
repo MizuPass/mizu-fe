@@ -11,10 +11,10 @@ export default function Privacy() {
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12 sm:mb-14 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-4 sm:mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-800 mb-4 sm:mb-6 font-sans">
             Privacy & <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">Compliance</span>
           </h2>
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl lg:max-w-4xl mx-auto leading-relaxed px-4 sm:px-0">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl lg:max-w-4xl mx-auto leading-relaxed px-4 sm:px-0 font-sans">
             The perfect balance between user privacy and regulatory compliance. 
             MizuPass pioneered the first solution that satisfies both users and regulators.
           </p>
@@ -30,8 +30,8 @@ export default function Privacy() {
                   🔐
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2">Zero-Knowledge Proofs</h3>
-                  <p className="text-sm sm:text-base text-gray-600">Prove your identity without revealing personal data. Advanced cryptography ensures your privacy is mathematically guaranteed.</p>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-1 sm:mb-2 font-sans">Zero-Knowledge Proofs</h3>
+                  <p className="text-sm sm:text-base text-gray-600 font-sans">Prove your identity without revealing personal data. Advanced cryptography ensures your privacy is mathematically guaranteed.</p>
                 </div>
               </div>
             </div>
