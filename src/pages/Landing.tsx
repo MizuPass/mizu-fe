@@ -1,4 +1,4 @@
-import { ArrowRight, Zap, Globe, Star, Heart, Eye, Lock, Sparkles, CheckCircle, TrendingUp, Award, Calendar, MapPin, Clock, Music, Gamepad2, Gift, Ticket } from "lucide-react"
+import { ArrowRight, Zap, Globe, Star, Heart, Eye, Lock, Sparkles, CheckCircle, TrendingUp, Award, MapPin, Clock, Music, Gamepad2, Gift, Ticket } from "lucide-react"
 import { MizuConnectButton } from "../components/ConnectButton"
 
 export default function Landing() {
