@@ -5,10 +5,5 @@
   "installCommand": "npm ci",
   "env": {
     "NODE_OPTIONS": "--max_old_space_size=4096"
-  },
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
   }
 }
