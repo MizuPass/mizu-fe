@@ -5,35 +5,9 @@ export default function Landing() {
     <div className="min-h-screen relative">
       <div className="tree-decoration tree-left"></div>
       <div className="tree-decoration tree-right"></div>
-{/* 
-      <header className="relative z-10 px-6 py-6">
-        <nav className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#87CEEB] to-[#4682B4] rounded-2xl flex items-center justify-center shadow-lg">
-              <Ticket className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-gray-800 tracking-tight font-sans">MizuPass</span>
-          </div>
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-700 hover:text-[#4682B4] transition-colors font-medium font-sans">
-              Features
-            </a>
-            <a href="#about" className="text-gray-700 hover:text-[#87CEEB] transition-colors font-medium font-sans">
-              About Us
-            </a>
-            <a href="#security" className="text-gray-700 hover:text-[#98FB98] transition-colors font-medium font-sans">
-              Security
-            </a>
-            <a href="#faq" className="text-gray-700 hover:text-[#90EE90] transition-colors font-medium font-sans">
-              FAQ
-            </a>
-          </div>
-        </nav>
-      </header> */}
-
       <main className="relative z-10">
         <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-12 mb-12">
+          <div>
             {/* Hero Section */}
             <div className="text-center mb-16">
               {/* <Badge className="bg-[#87CEEB]/20 text-[#4682B4] border-[#87CEEB]/30 mb-6 px-6 py-2 text-lg font-medium rounded-full">

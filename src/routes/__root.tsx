@@ -1,7 +1,5 @@
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import logoMizu from '../assets/logoMizu.png'
-import logoText from '../assets/logoText.png'
 const RootLayout = () => (
   <div 
     className="min-h-screen overflow-x-hidden"
@@ -10,12 +8,12 @@ const RootLayout = () => (
 
       <Link to="/" className="flex items-center ">
         <img 
-          src={logoMizu} 
+          src="/logoMizu.png" 
           alt="MizuPass Logo" 
           className="w-15 h-15 sm:w-20 sm:h-20 object-contain"
         />
         <img 
-          src={logoText} 
+          src="/logoText.png" 
           alt="MizuPass" 
           className="h-6 sm:h-8 object-contain"
         />
