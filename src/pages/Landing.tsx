@@ -10,10 +10,6 @@ export default function Landing() {
           <div>
             {/* Hero Section */}
             <div className=" flex flex-col-reverse md:flex-row gap-6 text-center md:text-left mb-16 px-2">
-              {/* <Badge className="bg-[#87CEEB]/20 text-[#4682B4] border-[#87CEEB]/30 mb-6 px-6 py-2 text-lg font-medium rounded-full">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Privacy-First Ticketing Platform
-              </Badge> */}
               <div className="flex flex-col justify-between gap-6">
                 <h1 className="text-xl xs:text-3xl sm:text-3xl md:text-5xl lg:text-7xl xl:text-7xl font-bold text-gray-900 text-balance leading-tight font-sans">
                 Privacy First, {" "}
@@ -34,52 +30,127 @@ export default function Landing() {
                   className="w-full object-contain"
                 />
               </div>
-
-
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-              <button className="gradient-button-strong flex items-center justify-center px-12 py-6 text-xl rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 transform duration-300 font-medium cursor-pointer font-sans">
-                <Ticket className="w-6 h-6 mr-3" />
-                Get Started
-              </button>
-              <button
-                className="bg-white hover:bg-gray-50 text-gray-700 border-gray-200 px-12 py-6 text-xl rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 transform duration-300 font-medium font-sans"
-              >
-                Learn More
-                <ArrowRight className="w-6 h-6 ml-3" />
-              </button>
+            <div className="text-center md:text-left mb-16">
+              <div className="text-purple-500 text-lg font-medium mb-4">Your Event Advantage</div>
+              <h1 className="text-xl xs:text-3xl sm:text-3xl md:text-5xl lg:text-7xl xl:text-7xl  text-gray-900 mb-8 font-bold ">
+                A Smarter Approach
+                <br />
+                to Event Ticketing
+              </h1>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mb-16">
-              <div className="scalloped-card bg-gradient-to-br from-[#FFE4B5] to-[#F0E68C] p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-md">
-                  <Shield className="w-8 h-8 text-[#DAA520]" />
+              {/* Left Card - Brown Frame */}
+              <div className="relative">
+                <div
+                  className="w-full h-80 bg-contain bg-center bg-no-repeat relative flex flex-col justify-center items-center p-8"
+                  style={{ backgroundImage: "url(/brown-card.svg)" }}
+                >
+                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg max-w-xs">
+                    <div className="flex items-center mb-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                        <span className="text-blue-600 text-sm">👋</span>
+                      </div>
+                      <span className="text-sm text-gray-600">Hello, Event-goer</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">Privacy First</h3>
+                    <p className="text-sm text-gray-600">
+                      Stealth addresses and ZK proofs ensure your transactions remain completely private
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-800 font-sans">Privacy First</h3>
-                <p className="text-gray-700 text-lg leading-relaxed font-sans">
-                  Stealth addresses and ZK proofs ensure your transactions remain completely private
-                </p>
+                <div className="text-center mt-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Privacy-First Insights</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Receive personalized, data-driven insights that help you understand your progress and guide your
+                    event journey.
+                  </p>
+                </div>
               </div>
 
-              <div className="scalloped-card bg-gradient-to-br from-[#FFB6C1] to-[#FFC0CB] p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-md">
-                  <Zap className="w-8 h-8 text-[#DC143C]" />
+              {/* Middle Card - Pink Frame */}
+              <div className="relative">
+                <div
+                  className="w-full h-80 bg-contain bg-center bg-no-repeat relative flex flex-col justify-center items-center p-8"
+                  style={{ backgroundImage: "url(/red-card.svg)" }}
+                >
+                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg max-w-xs">
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Events</div>
+                        <div className="text-lg font-bold">15 total</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Time</div>
+                        <div className="text-lg font-bold">2h 30m</div>
+                      </div>
+                    </div>
+                    <div className="h-20 bg-green-50 rounded-lg p-3 relative">
+                      <svg className="w-full h-full" viewBox="0 0 200 60">
+                        <polyline
+                          fill="none"
+                          stroke="#10B981"
+                          strokeWidth="2"
+                          points="10,40 30,30 50,35 70,25 90,30 110,20 130,25 150,15 170,20 190,10"
+                        />
+                        <circle cx="190" cy="10" r="3" fill="#10B981" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-800 font-sans">Lightning Fast</h3>
-                <p className="text-gray-700 text-lg leading-relaxed font-sans">
-                  Sub-30 second ticket purchases with automatic JETH to MJPY conversion
-                </p>
+                <div className="text-center mt-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Zap className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">All-in-One Tracking</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    From ticket purchases to event stats like attendance and satisfaction, manage every aspect of your
+                    events in one place.
+                  </p>
+                </div>
               </div>
 
-              <div className="scalloped-card bg-gradient-to-br from-[#87CEEB] to-[#B0E0E6] p-8 text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-md">
-                  <Globe className="w-8 h-8 text-[#4682B4]" />
+              {/* Right Card - Blue Frame */}
+              <div className="relative">
+                <div
+                  className="w-full h-80 bg-contain bg-center bg-no-repeat relative flex flex-col justify-center items-center p-8"
+                  style={{ backgroundImage: "url(/blue-card.svg)" }}
+                >
+                  <div className="space-y-3 max-w-xs">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm flex items-center">
+                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-red-500 text-sm">🏃</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">Japanese (Mizuhiki ID)</div>
+                        <div className="text-xs text-gray-500">today at 12:00 pm</div>
+                      </div>
+                    </div>
+                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-sm flex items-center">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-green-500 text-sm">🎫</span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">international users (ZK Passport)</div>
+                        <div className="text-xs text-gray-500">today at Shibuya street</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-gray-800 font-sans">Universal Access</h3>
-                <p className="text-gray-700 text-lg leading-relaxed font-sans">
-                  Dual KYC system supports both Japanese Mizuhiki ID and international users
-                </p>
+                <div className="text-center mt-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Globe className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-3">Universal Access</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Dual KYC system supports both Japanese Mizuhiki ID and international users
+                  </p>
+                </div>
               </div>
             </div>
 
