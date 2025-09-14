@@ -9,10 +9,24 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  /* Body Color 1 (Primary): #63D3D6 */
+  --body1: #63D3D6;
+  --body1-foreground: #ffffff;
+  /* Body Color 2 (Secondary Gradient): #F3F4CA to #C0FF8D */
+  --body2: linear-gradient(135deg, #F3F4CA 0%, #C0FF8D 100%);
+  --body2-foreground: #111827; /* text-gray-900 */
+  /* Body Color 3: #FD9DB4 */
+  --body3: #FD9DB4;
+  --body3-foreground: #ffffff;
+  /* Body Color 4: White */
+  --body4: #ffffff;
+  --body4-foreground: #111827; /* text-gray-900 */
+  
+  /* Legacy support */
+  --primary: #63D3D6;
+  --primary-foreground: #ffffff;
+  --secondary: linear-gradient(135deg, #F3F4CA 0%, #C0FF8D 100%);
+  --secondary-foreground: #111827;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);

@@ -20,3 +20,6 @@ export const kaigan = defineChain({
     default: { name: 'Explorer', url: 'https://explorer.kaigan.jsc.dev' },
   },
 })
+
+
+// https://rpc.kaigan.jsc.dev/rpc?token=fe4hYU5C4Q8djb-5kghnnqlzNqdGGDurJ0tbWV93ZAU
