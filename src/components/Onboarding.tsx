@@ -4,6 +4,8 @@ import { useZKPassportVerification } from '../hooks/useZKPassportVerification'
 import { useEffect, useState } from 'react'
 import { formatEther } from 'viem'
 import QRCode from 'react-qr-code'
+import { Spinner, LoadingState } from './ui/Spinner'
+import { useENSSubdomain } from '../hooks/useENSSubdomain'
 
 interface OnboardingProps {
   onStartExploring: () => void
@@ -20,9 +22,12 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
   })
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
   const zkPassport = useZKPassportVerification()
+  const ensSubdomain = useENSSubdomain()
   const [showBalance, setShowBalance] = useState(false)
   const [showZKModal, setShowZKModal] = useState(false)
   const [showMizuhikiModal, setShowMizuhikiModal] = useState(false)
+  const [showENSSuccessModal, setShowENSSuccessModal] = useState(false)
+  const [ensSubdomainInput, setEnsSubdomainInput] = useState('')
 
   // Debug balance data
   useEffect(() => {
@@ -37,6 +42,13 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
       })
     }
   }, [showBalance, balance, isLoading, isError, address])
+
+  // Show ENS success modal when claiming succeeds
+  useEffect(() => {
+    if (ensSubdomain.claimSuccess) {
+      setShowENSSuccessModal(true)
+    }
+  }, [ensSubdomain.claimSuccess])
   
   return (
     <div className="max-w-4xl mx-auto px-6 w-full">
@@ -218,6 +230,93 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                     </div>
                   </div>
                 )}
+
+                {/* ENS Subdomain Claiming - Show only if verified */}
+                {currentUser.isVerified && (
+                  <div className="mt-3 pt-2 border-t border-white/30">
+                    <div className="flex items-center justify-center mb-2">
+                      <img src="/mizuIcons/mizu-love.svg" alt="ENS" className="w-4 h-4 mr-1" />
+                      <p className="text-xs sm:text-sm font-medium text-gray-700">Claim Your Free ENS Subdomain!</p>
+                    </div>
+
+                    {!ensSubdomain.claimSuccess ? (
+                      <div className="space-y-2">
+                        <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 overflow-hidden rounded-lg border border-white/40">
+                          <input
+                            type="text"
+                            value={ensSubdomainInput}
+                            onChange={(e) => setEnsSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                            placeholder="yourname"
+                            className="flex-1 px-3 py-2 text-xs sm:text-sm bg-white/80 focus:outline-none focus:bg-white text-gray-800 placeholder-gray-500 rounded-t-lg sm:rounded-t-none sm:rounded-l-lg"
+                            maxLength={20}
+                          />
+                          <span className="px-3 py-2 text-xs sm:text-sm bg-white/60 text-gray-700 font-medium text-center sm:text-left rounded-b-lg sm:rounded-b-none sm:rounded-r-lg border-t sm:border-t-0 sm:border-l border-white/40">
+                            .mizupass.eth
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (ensSubdomainInput.trim() && address) {
+                              ensSubdomain.claimSubdomain(ensSubdomainInput, address)
+                            }
+                          }}
+                          disabled={!ensSubdomainInput.trim() || ensSubdomain.isClaimingENS}
+                          className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: 'var(--primary)' }}
+                        >
+                          {ensSubdomain.isClaimingENS ? (
+                            <>
+                              <Spinner size="sm" className="mr-2 text-white" />
+                              Claiming ENS...
+                            </>
+                          ) : (
+                            <>
+                              <img src="/mizuIcons/mizu-success.svg" alt="Claim" className="w-4 h-4 mr-2" />
+                              Claim Free ENS Subdomain
+                            </>
+                          )}
+                        </button>
+
+                        {ensSubdomain.claimError && (
+                          <div className="p-2 bg-red-100/50 border border-red-200/50 rounded-lg text-xs text-red-700 text-center">
+                            <img src="/mizuIcons/mizu-sad.svg" alt="Error" className="w-4 h-4 mx-auto mb-1" />
+                            {ensSubdomain.claimError}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-green-100/50 border border-green-200/50 rounded-lg text-center">
+                          <div className="flex items-center justify-center mb-2">
+                            <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-5 h-5 mr-1" />
+                            <span className="text-sm font-bold text-green-700">ENS Claimed Successfully!</span>
+                          </div>
+                          <div className="mb-2">
+                            <div className="inline-block px-3 py-1 bg-white/80 rounded-full border border-green-200">
+                              <span className="text-xs font-bold text-green-800">
+                                {ensSubdomain.claimSuccess.domain || `${ensSubdomainInput}.mizupass.eth`}
+                              </span>
+                            </div>
+                          </div>
+                          {ensSubdomain.claimSuccess.transactionHash && (
+                            <div className="text-center">
+                              <a
+                                href={`https://etherscan.io/tx/${ensSubdomain.claimSuccess.transactionHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium text-blue-600 hover:underline flex items-center justify-center gap-1"
+                              >
+                                <img src="/mizuIcons/mizu-success.svg" alt="TX" className="w-3 h-3" />
+                                View Transaction
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {currentUser.role !== undefined && (
@@ -349,79 +448,32 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
       {/* ZK Passport Verification Modal */}
       {showZKModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
-            {/* Modal Header with Cute Design */}
-            <div className="bg-green-100 p-6 text-center relative overflow-hidden">
-              {/* Decorative circles */}
-              <div className="absolute top-0 left-0 w-full h-full">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute bg-green-200/30 rounded-full"
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      left: `${i * 20}%`,
-                      top: '-20px',
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Header Content */}
-              <div className="relative z-10">
-                <h2 className="text-xl font-bold text-gray-800 mb-2">
-                  Verify Your Account!
-                </h2>
-                <p className="text-sm text-gray-600 mb-4">
-                  Scan this for ZK Passport !
-                </p>
-
-                {/* Cute Mizu Characters */}
-                <div className="absolute -top-2 -right-4">
-                  <img src="/mizuIcons/mizu-cute.svg" alt="Cute Mizu" className="w-12 h-12" />
-                </div>
-                <div className="absolute -bottom-4 -left-4">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <img src="/mizuIcons/mizu-success.svg" alt="ZK Mizu" className="w-8 h-8" />
-                  </div>
-                </div>
-
-                {/* Sparkles */}
-                <div className="absolute top-4 left-6">
-                  <div className="text-white text-lg">✨</div>
-                </div>
-                <div className="absolute bottom-8 right-8">
-                  <div className="text-white text-lg">✨</div>
-                </div>
-              </div>
-            </div>
-
-            {/* QR Code Section with Background */}
-            <div className="p-6">
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* QR Code Section with Background - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="relative">
                 {/* Background Image */}
                 <img
                   src="/zk-pass-qr.png"
                   alt="ZK Passport Verification"
-                  className="w-full max-w-md mx-auto object-contain"
+                  className="w-full max-w-sm mx-auto object-contain"
                 />
 
                 {/* Overlay QR Code in the white space below ZKPassport logo */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="mt-20 sm:mt-22 md:mt-22">
+                  <div className="mt-10 sm:mt-14 md:mt-18">
                     {zkPassport.queryUrl ? (
-                      <div className="w-20 h-10 sm:w-24 sm:h-24 md:w-28 md:h-28">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32">
                         <QRCode
                           value={zkPassport.queryUrl}
                           size={256}
-                          style={{ height: "90%", maxWidth: "100%", width: "100%" }}
+                          style={{ height: "100%", maxWidth: "100%", width: "100%" }}
                         />
                       </div>
                     ) : (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 flex items-center justify-center">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center">
                         <div className="text-gray-600 text-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600 mx-auto mb-2"></div>
+                          <Spinner size="sm" className="mx-auto mb-1" />
                           <p className="text-xs">Generating...</p>
                         </div>
                       </div>
@@ -430,17 +482,90 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                 </div>
               </div>
 
-              {/* Status Message */}
+              {/* Status Message with Loading States */}
               {zkPassport.message && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-blue-800 text-center">
-                    {zkPassport.message}
-                  </p>
+                  {zkPassport.isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Spinner size="sm" />
+                      <p className="text-sm text-blue-800">
+                        {zkPassport.message}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-blue-800 text-center">
+                      {zkPassport.message}
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* Verification Results */}
-              {zkPassport.verified && (
+              {/* Specific Loading States */}
+              {zkPassport.loadingStates.generatingProofs && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <LoadingState
+                    message="Generating zero-knowledge proofs..."
+                    spinnerSize="sm"
+                  />
+                </div>
+              )}
+
+              {zkPassport.loadingStates.backendVerifying && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+                  <LoadingState
+                    message="Verifying with MizuPass backend..."
+                    spinnerSize="sm"
+                  />
+                </div>
+              )}
+
+              {zkPassport.loadingStates.contractPending && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                  <LoadingState
+                    message="Please confirm in your wallet..."
+                    spinnerSize="sm"
+                  />
+                </div>
+              )}
+
+              {zkPassport.loadingStates.contractConfirming && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
+                  <LoadingState
+                    message="Confirming blockchain transaction..."
+                    spinnerSize="sm"
+                  />
+                </div>
+              )}
+
+              {/* Combined Status Display */}
+              {zkPassport.hasError ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <div className="text-center">
+                    <img src="/mizuIcons/mizu-sad.svg" alt="Error" className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-red-800 font-medium">
+                      {zkPassport.verified ? 'Verification Complete - Blockchain Error' : 'Blockchain Error'}
+                    </p>
+                    {zkPassport.verified && (
+                      <p className="text-sm text-green-600 mb-2">
+                        ✅ ZK Passport verification successful{zkPassport.firstName && `, welcome ${zkPassport.firstName}!`}
+                      </p>
+                    )}
+                    <p className="text-sm text-red-600 mt-1">
+                      ❌ {zkPassport.message || 'An error occurred during blockchain registration'}
+                    </p>
+                    {zkPassport.errorMessage && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-red-500 cursor-pointer hover:text-red-700">
+                          Technical Details
+                        </summary>
+                        <p className="text-xs text-red-500 mt-1 font-mono break-all">
+                          {zkPassport.errorMessage}
+                        </p>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ) : zkPassport.verified ? (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                   <div className="text-center">
                     <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-8 h-8 mx-auto mb-2" />
@@ -450,7 +575,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Close Button */}
               <button
@@ -458,10 +583,22 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                   setShowZKModal(false)
                   zkPassport.resetVerification()
                 }}
-                className="w-full px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors font-medium"
+                disabled={zkPassport.isLoading && !!zkPassport.queryUrl} // Only disable if verification has started
+                className={`w-full px-6 py-3 mt-4 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2 ${
+                  zkPassport.isLoading && !!zkPassport.queryUrl
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:opacity-90'
+                }`}
                 style={{ backgroundColor: 'var(--primary)' }}
               >
-                Close
+                {zkPassport.isLoading && !!zkPassport.queryUrl ? (
+                  <>
+                    <Spinner size="sm" className="text-white" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  'Close'
+                )}
               </button>
             </div>
           </div>
@@ -485,6 +622,43 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                 style={{ backgroundColor: 'var(--primary)' }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ENS Success Modal */}
+      {showENSSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+            <div className="relative">
+              {/* Background Image */}
+              <img
+                src="/ens-image-success.png"
+                alt="ENS Success"
+                className="w-full object-contain"
+              />
+
+              {/* Domain Name inside the white card at bottom */}
+              <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
+                <p className="font-bold text-lg text-center" style={{ color: '#53C3F1' }}>
+                  {ensSubdomain.claimSuccess?.domain || `${ensSubdomainInput}.mizupass.eth`}
+                </p>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <div className="p-4">
+              <button
+                onClick={() => {
+                  setShowENSSuccessModal(false)
+                  ensSubdomain.resetClaim()
+                }}
+                className="w-full px-6 py-3 text-white rounded-lg transition-colors font-medium hover:opacity-90"
+                style={{ backgroundColor: 'var(--primary)' }}
+              >
+                Awesome!
               </button>
             </div>
           </div>

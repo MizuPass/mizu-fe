@@ -1,7 +1,7 @@
 import type { Address } from 'viem'
 
 // MizuPassIdentity Contract Configuration
-export const MIZUPASS_IDENTITY_ADDRESS: Address = '0x3200D5861a8bA6874e81f1B2A03661bBCA1e6665'
+export const MIZUPASS_IDENTITY_ADDRESS: Address = '0xF3c2bdb0Dca495144C78bd3d4d3f3adfA16367b6'
 
 export const MIZUPASS_IDENTITY_ABI = [
   {
