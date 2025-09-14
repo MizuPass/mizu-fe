@@ -1,8 +1,9 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useEffect, useState, useRef } from 'react'
-import { formatEther } from 'viem'
+import { formatEther, parseEther } from 'viem'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { mockEvents } from '../constants/mockEvents'
+import { useEventRegistry, type CreateEventParams } from '../hooks/useEventRegistry'
 
 // Mock data for dashboard stats
 const mockDashboardStats = {
@@ -31,9 +32,57 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     }
   })
   const [showBalance, setShowBalance] = useState(false)
+  
+  // Event Registry Hook
+  const {
+    createEvent,
+    approveMJPY,
+    isTransactionPending,
+    isTransactionConfirming,
+    isTransactionConfirmed,
+    transactionHash,
+    transactionError,
+    confirmationError,
+    isCreatingEvent,
+    isApprovingMJPY,
+    isSimulatingApproval,
+    isSimulatingCreate,
+    approvalSimulationError,
+    createEventSimulationError
+  } = useEventRegistry()
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
+  
+  // Form state - Updated to match NFT metadata structure
+  const [formData, setFormData] = useState({
+    name: '', // Changed from title to name for NFT metadata
+    category: 'Gaming', // Keep for UI/backend, not in NFT metadata
+    description: '',
+    external_url: '', // New field for NFT metadata
+    price: '', // Will be converted to number
+    location: '',
+    date: null as number | null,
+    maxParticipants: '',
+    eventImage: null as File | null
+  })
+
+  // Loading states for upload process
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadStep, setUploadStep] = useState<'idle' | 'uploading-image' | 'uploading-metadata' | 'creating-event'>('idle')
+  const [uploadProgress, setUploadProgress] = useState({
+    step: 1,
+    total: 3,
+    message: ''
+  })
+
+  // Error state for simulation errors
+  const [simulationError, setSimulationError] = useState<string | null>(null)
+  
+  // Combined loading state
+  const isProcessing = isUploading || isCreatingEvent || isApprovingMJPY || isSimulatingApproval || isSimulatingCreate
 
   // Debug balance data
   useEffect(() => {
@@ -85,6 +134,622 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     // Initialize scroll button states
     checkScrollButtons()
   }, [])
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isTransactionConfirmed) {
+      // Success! Reset form and show success message
+      setIsUploading(false)
+      setUploadStep('idle')
+      
+      // Reset form data
+      setFormData({
+        name: '',
+        category: 'Gaming',
+        description: '',
+        external_url: '',
+        price: '',
+        location: '',
+        date: null,
+        maxParticipants: '',
+        eventImage: null
+      })
+      
+      // Clear image preview
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+        setImagePreviewUrl(null)
+      }
+      
+      console.log('🎉 Event created successfully! Form reset for next event.')
+    }
+  }, [isTransactionConfirmed, imagePreviewUrl])
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (transactionError) {
+      setIsUploading(false)
+      setUploadStep('idle')
+      console.error('Transaction failed:', transactionError.message)
+    }
+  }, [transactionError])
+
+  useEffect(() => {
+    if (confirmationError) {
+      setIsUploading(false) 
+      setUploadStep('idle')
+      console.error('Transaction confirmation failed:', confirmationError.message)
+    }
+  }, [confirmationError])
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+      }
+    }
+  }, [imagePreviewUrl])
+
+  // Monitor simulation errors
+  useEffect(() => {
+    if (approvalSimulationError) {
+      setSimulationError(`MJPY approval simulation failed: ${approvalSimulationError.message}`)
+    }
+  }, [approvalSimulationError])
+
+  useEffect(() => {
+    if (createEventSimulationError) {
+      setSimulationError(`Event creation simulation failed: ${createEventSimulationError.message}`)
+    }
+  }, [createEventSimulationError])
+
+  // Form handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateValue = e.target.value
+    if (dateValue) {
+      // Convert to unix timestamp (integer)
+      const timestamp = Math.floor(new Date(dateValue).getTime() / 1000)
+      setFormData(prev => ({ ...prev, date: timestamp }))
+    } else {
+      setFormData(prev => ({ ...prev, date: null }))
+    }
+  }
+
+  // Convert unix timestamp back to date input format (YYYY-MM-DD)
+  const getDateInputValue = () => {
+    if (!formData.date) return ''
+    const date = new Date(formData.date * 1000)
+    return date.toISOString().split('T')[0]
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    console.log('File selected:', file) // Debug log
+    console.log('File details:', {
+      name: file?.name,
+      size: file?.size,
+      type: file?.type
+    })
+    
+    // Clean up previous preview URL
+    if (imagePreviewUrl) {
+      console.log('Cleaning up previous URL:', imagePreviewUrl)
+      URL.revokeObjectURL(imagePreviewUrl)
+      setImagePreviewUrl(null)
+    }
+    
+    // Create new preview URL if file exists
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        console.error('Please select an image file')
+        return
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        console.error('File size must be less than 5MB')
+        return
+      }
+      
+      try {
+        const url = URL.createObjectURL(file)
+        console.log('Preview URL created:', url) // Debug log
+        
+        // Use setTimeout to ensure state update happens after cleanup
+        setTimeout(() => {
+          setImagePreviewUrl(url)
+          console.log('Preview URL state updated:', url)
+        }, 100)
+        
+        setFormData(prev => ({ ...prev, eventImage: file }))
+      } catch (error) {
+        console.error('Error creating object URL:', error)
+        console.error('Failed to preview image')
+      }
+    } else {
+      setFormData(prev => ({ ...prev, eventImage: null }))
+    }
+  }
+
+  const handleCreateEvent = () => {
+    setShowCreateForm(true)
+  }
+
+  const handleBackToList = () => {
+    setShowCreateForm(false)
+    
+    // Clean up preview URL
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl)
+      setImagePreviewUrl(null)
+    }
+    
+    setFormData({
+      name: '',
+      category: 'Gaming',
+      description: '',
+      external_url: '',
+      price: '', // Keep as string for form input
+      location: '',
+      date: null,
+      maxParticipants: '',
+      eventImage: null
+    })
+  }
+
+  const handleSubmitEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.eventImage) {
+      console.error('Please upload an event image')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+      
+      // Step 1: Upload image
+      setUploadStep('uploading-image')
+      setUploadProgress({
+        step: 1,
+        total: 3,
+        message: 'Uploading event image to IPFS...'
+      })
+
+      const { uploadEventNFTMetadata } = await import('../services/uploadService')
+      
+      // Prepare event data for upload
+      const eventUploadData = {
+        name: formData.name,
+        description: formData.description,
+        external_url: '', // Will be filled with metadata IPFS URL
+        price: parseFloat(formData.price) || 0, // Convert string to number
+        location: formData.location,
+        maxParticipants: parseInt(formData.maxParticipants),
+        date: formData.date!, // We know it's not null due to form validation
+        eventImage: formData.eventImage
+      }
+
+      // Step 2: Upload metadata
+      setUploadStep('uploading-metadata')
+      setUploadProgress({
+        step: 2,
+        total: 3,
+        message: 'Creating NFT metadata...'
+      })
+
+      const { imageCID, eventMetadataCID, ticketMetadataCID, metadataURL } = await uploadEventNFTMetadata(eventUploadData)
+
+      // Step 3: Create event on blockchain
+      setUploadStep('creating-event')
+      setUploadProgress({
+        step: 3,
+        total: 3,
+        message: 'Creating event on blockchain...'
+      })
+
+      // Prepare smart contract parameters
+      const createEventParams: CreateEventParams = {
+        ipfsHash: eventMetadataCID,
+        ticketIpfsHash: ticketMetadataCID,
+        ticketPrice: parseEther(formData.price.toString()), // Convert to wei
+        maxTickets: BigInt(parseInt(formData.maxParticipants)),
+        eventDate: BigInt(formData.date!), // We know it's not null due to form validation
+        eventName: formData.name,
+        eventSymbol: formData.name.substring(0, 6).toUpperCase().replace(/\s/g, '') // Generate symbol from name
+      }
+
+      console.log('Creating event with params:', createEventParams)
+      
+      // Call smart contract
+      try {
+        // Clear any previous simulation errors
+        setSimulationError(null)
+        
+        await createEvent(createEventParams)
+        
+        console.log('Event creation transaction submitted!', {
+          ...formData,
+          imageCID,
+          eventMetadataCID,
+          ticketMetadataCID,
+          metadataURL,
+          transactionHash,
+          dateTimestamp: formData.date,
+          dateReadable: formData.date ? new Date(formData.date * 1000).toLocaleDateString() : ''
+        })
+      } catch (contractError: any) {
+        if (contractError.message === 'APPROVAL_NEEDED') {
+          // Need to approve MJPY first
+          console.log('MJPY approval required before creating event')
+          console.log('Starting MJPY approval process...')
+          
+          try {
+            // Clear any previous simulation errors
+            setSimulationError(null)
+            await approveMJPY()
+          } catch (approvalError: any) {
+            console.error('Approval failed:', approvalError)
+            setSimulationError(`Approval simulation failed: ${approvalError.message}`)
+            
+            // Reset upload states since approval failed
+            setIsUploading(false)
+            setUploadStep('idle')
+            return // Don't proceed, show error banner
+          }
+          
+          // Reset upload states since we only did approval
+          setIsUploading(false)
+          setUploadStep('idle')
+          return // Don't proceed to success, user needs to submit again after approval
+        } else if (contractError.message.includes('Simulation failed')) {
+          // Simulation error - show error banner without resetting form
+          setSimulationError(contractError.message)
+          setIsUploading(false)
+          setUploadStep('idle')
+          return // Don't proceed, show error banner
+        } else {
+          throw contractError // Re-throw other errors
+        }
+      }
+
+      // Don't redirect, just show success and wait for confirmation
+      
+    } catch (error) {
+      console.error('Error creating event:', error)
+      console.error(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
+      // Check if it's a simulation error
+      if (error instanceof Error && error.message.includes('Simulation failed')) {
+        setSimulationError(error.message)
+      } else {
+        setSimulationError(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+      
+      setIsUploading(false)
+      setUploadStep('idle')
+    }
+  }
+
+  // Show Create Event Form if showCreateForm is true
+  if (showCreateForm) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 w-full">
+        {/* Back Button */}
+        <div className="mb-4">
+          <button
+            onClick={handleBackToList}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-200 shadow-lg"
+          >
+            <img src="/mizuIcons/mizu-attention.svg" alt="Back" className="w-4 h-4" />
+            <span className="text-sm font-medium text-gray-700">Back to Dashboard</span>
+          </button>
+        </div>
+
+        {/* Create Event Form */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100 mb-6 max-w-2xl mx-auto">
+          {/* Form Header */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-3 mb-2">
+              <img src="/mizuIcons/mizu-www.svg" alt="Create" className="w-8 h-8" />
+              Create New Event
+            </h2>
+            <p className="text-sm text-gray-600">Fill in the details below</p>
+          </div>
+
+          {/* Loading Banner */}
+          {isProcessing && (
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-4">
+              <div className="text-center">
+                <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
+                  <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-6 h-6 animate-spin" />
+                  Creating Your Event
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {isApprovingMJPY && isTransactionPending ? 'Approve MJPY tokens in wallet...' :
+                   isApprovingMJPY && isTransactionConfirming ? 'Confirming MJPY approval...' :
+                   isTransactionPending ? 'Waiting for wallet confirmation...' :
+                   isTransactionConfirming ? 'Confirming transaction on blockchain...' :
+                   uploadProgress.message}
+                </p>
+                
+                {/* Progress Steps */}
+                <div className="flex items-center justify-center space-x-4 mb-4">
+                  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                    uploadProgress.step >= 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <span className="text-xs font-medium">1</span>
+                    <span className="text-xs">Upload Image</span>
+                    {uploadStep === 'uploading-image' && (
+                      <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-4 h-4 animate-spin" />
+                    )}
+                    {uploadProgress.step > 1 && (
+                      <img src="/mizuIcons/mizu-success.svg" alt="Done" className="w-4 h-4" />
+                    )}
+                  </div>
+                  
+                  <div className="w-8 h-px bg-gray-300"></div>
+                  
+                  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                    uploadProgress.step >= 2 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <span className="text-xs font-medium">2</span>
+                    <span className="text-xs">Create Metadata</span>
+                    {uploadStep === 'uploading-metadata' && (
+                      <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-4 h-4 animate-spin" />
+                    )}
+                    {uploadProgress.step > 2 && (
+                      <img src="/mizuIcons/mizu-success.svg" alt="Done" className="w-4 h-4" />
+                    )}
+                  </div>
+                  
+                  <div className="w-8 h-px bg-gray-300"></div>
+                  
+                  <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                    uploadProgress.step >= 3 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <span className="text-xs font-medium">3</span>
+                    <span className="text-xs">Create Event</span>
+                    {uploadStep === 'creating-event' && (
+                      <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-4 h-4 animate-spin" />
+                    )}
+                    {uploadProgress.step > 3 && (
+                      <img src="/mizuIcons/mizu-success.svg" alt="Done" className="w-4 h-4" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(uploadProgress.step / uploadProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Simulation Error Banner */}
+          {simulationError && (
+            <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <img src="/mizuIcons/mizu-attention.svg" alt="Error" className="w-6 h-6 mt-1 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-red-800 mb-2">Transaction Simulation Failed</h3>
+                  <p className="text-sm text-red-700 mb-3">
+                    {simulationError}
+                  </p>
+                  <p className="text-xs text-red-600">
+                    The transaction was simulated and would fail. Please check your wallet balance, token approvals, or contract permissions before trying again.
+                  </p>
+                  <button
+                    onClick={() => setSimulationError(null)}
+                    className="mt-3 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmitEvent} className="space-y-4">
+            <fieldset disabled={isProcessing} className={isProcessing ? 'opacity-50 pointer-events-none' : ''}>
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                  placeholder="Shibuya Esports Cup"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                >
+                  <option value="Gaming">Gaming</option>
+                  <option value="Loyalty">Loyalty</option>
+                  <option value="Exclusive">Exclusive</option>
+                  <option value="Concert">Concert</option>
+                  <option value="Conference">Conference</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (MJPY)</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                  placeholder="2800"
+                  min="0"
+                  step="1"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                <input
+                  type="number"
+                  name="maxParticipants"
+                  value={formData.maxParticipants}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                  placeholder="200"
+                  min="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                  placeholder="Virtual Arena"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={getDateInputValue()}
+                  onChange={handleDateChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-purple-500 text-sm resize-none"
+                placeholder="Describe your event..."
+                required
+              />
+            </div>
+
+
+            {/* Event Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Event Image</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="eventImage"
+                />
+                {imagePreviewUrl ? (
+                  <div className="flex items-center justify-center gap-2 p-4">
+                    <div className="flex-1 flex justify-center">
+                      <img 
+                        src={imagePreviewUrl} 
+                        alt="Event preview" 
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"
+                        onLoad={() => console.log('Image loaded successfully:', imagePreviewUrl)}
+                        onError={(e) => {
+                          console.error('Image failed to load:', e, 'URL:', imagePreviewUrl)
+                          setImagePreviewUrl(null)
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <span className="text-sm font-medium text-gray-700 mb-2">{formData.eventImage?.name}</span>
+                      <span className="text-xs text-gray-500 mb-3">
+                        {formData.eventImage ? `${(formData.eventImage.size / 1024 / 1024).toFixed(2)} MB` : ''}
+                      </span>
+                      <label htmlFor="eventImage" className="cursor-pointer bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-all border border-blue-200 text-center inline-block w-fit">
+                        <span className="text-sm font-medium text-blue-700">Change</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <label htmlFor="eventImage" className="cursor-pointer block p-6 text-center">
+                    <div className="flex flex-col items-center">
+                      <img src="/mizuIcons/mizu-cute.svg" alt="Upload" className="w-10 h-10 mb-2 opacity-50" />
+                      <span className="text-sm text-gray-600">Upload image</span>
+                      <span className="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</span>
+                    </div>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            </fieldset>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleBackToList}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50 transition-colors"
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`px-6 py-2 rounded-lg text-white text-sm font-medium transition-all duration-200 ${
+                  isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                }`}
+                style={{ backgroundColor: 'var(--primary)' }}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <img src="/mizuIcons/mizu-tired.svg" alt="Creating" className="w-4 h-4 inline mr-2 animate-spin" />
+                    {isApprovingMJPY && isTransactionPending ? 'Approve MJPY...' :
+                     isApprovingMJPY && isTransactionConfirming ? 'Approving...' :
+                     isTransactionPending ? 'Confirm in Wallet...' : 
+                     isTransactionConfirming ? 'Confirming...' : 
+                     'Creating...'}
+                  </>
+                ) : (
+                  'Create Event 🎉'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-6 w-full">
@@ -245,6 +910,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
             </p>
           </div>
           <button 
+            onClick={handleCreateEvent}
             className="px-6 py-3 rounded-xl text-white font-bold text-base transition-all duration-300 hover:scale-105"
             style={{ backgroundColor: 'var(--body1)' }}
           >
@@ -252,7 +918,6 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
           </button>
         </div>
         
-        {/* Events Horizontal Scroll */}
         <div className="flex h-fit overflow-hidden mt-6">
           <div 
             ref={scrollContainerRef}
@@ -310,6 +975,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
                 Build your event portfolio and grow your audience.
               </p>
               <button 
+                onClick={handleCreateEvent}
                 className="px-3 py-2 rounded-lg font-medium text-white transition-all duration-300 hover:scale-105 text-xs"
                 style={{ backgroundColor: 'var(--primary)' }}
               >

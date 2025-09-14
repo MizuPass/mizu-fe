@@ -1,14 +1,44 @@
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { MIZUPASS_IDENTITY_ADDRESS, MIZUPASS_IDENTITY_ABI, UserRole, type UserRoleType } from '../config/contracts'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Address } from 'viem'
+import { useEffect } from 'react'
 
 // API Base URL
 const API_BASE_URL = 'https://services.mizupass.com/api/identity'
 
 export const useMizuPassIdentity = () => {
   const { address } = useAccount()
-  const { writeContract } = useWriteContract()
+  const { writeContract, data: hash, isPending } = useWriteContract()
+  const queryClient = useQueryClient()
+  
+  // Wait for transaction confirmation
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  // Refetch all data when transaction is confirmed
+  useEffect(() => {
+    if (isConfirmed && address) {
+      // Refetch all wagmi contract queries
+      queryClient.invalidateQueries({
+        queryKey: ['readContract'],
+      })
+      
+      // Refetch all API queries for this user
+      queryClient.invalidateQueries({
+        queryKey: ['isVerified', address],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['isZKPassportVerified', address],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['verifyMizuhikiSBT', address],
+      })
+      
+      console.log('Transaction confirmed! Refetching user data...')
+    }
+  }, [isConfirmed, address, queryClient])
 
   // Mixed blockchain and API call functions
   // Blockchain: Registration, roles, user status
@@ -176,6 +206,12 @@ export const useMizuPassIdentity = () => {
     registerUserRole,
     registerZKPassportUser,
     
+    // Transaction states
+    isTransactionPending: isPending,
+    isTransactionConfirming: isConfirming,
+    isTransactionConfirmed: isConfirmed,
+    transactionHash: hash,
+    
     // Read functions for any user
     useIsUserRegistered,
     useGetUserRole,
@@ -201,7 +237,9 @@ export const useMizuPassIdentity = () => {
       loading: currentUserRegistered.isLoading ||
                currentUserRole.isLoading ||
                currentUserZKVerified.isLoading ||
-               currentUserSBTVerified.isLoading,
+               currentUserSBTVerified.isLoading ||
+               isPending ||
+               isConfirming,
       // API call errors for debugging
       errors: {
         registered: currentUserRegistered.error?.message,
