@@ -4,6 +4,10 @@ export interface EventMetadata {
   description: string
   image: string
   external_url?: string
+  location?: string
+  price?: string
+  maxParticipants?: string
+  date?: string
 }
 
 export interface TicketMetadata {
@@ -105,7 +109,7 @@ class EventsApiService {
    * Get detailed information about a specific event
    */
   async getEventDetails(eventId: number): Promise<EventData> {
-    if (!eventId || eventId <= 0) {
+    if (eventId === undefined || eventId === null || eventId < 0) {
       throw new Error('Valid event ID is required')
     }
 

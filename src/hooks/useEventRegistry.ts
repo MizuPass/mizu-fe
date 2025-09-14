@@ -1,4 +1,5 @@
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount, useSimulateContract } from 'wagmi'
+import { decodeEventLog } from 'viem'
 import { MIZU_EVENT_REGISTRY_ADDRESS, MIZU_EVENT_REGISTRY_ABI, JPYM_TOKEN_ADDRESS, ERC20_ABI } from '../config/contracts'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -24,9 +25,16 @@ export const useEventRegistry = () => {
   const queryClient = useQueryClient()
   const [currentStep, setCurrentStep] = useState<'approval' | 'creation' | 'idle'>('idle')
   const [simulationParams, setSimulationParams] = useState<CreateEventParams | null>(null)
+  const [createdEventContract, setCreatedEventContract] = useState<string | null>(null)
+  const [lastCreatedEventStep, setLastCreatedEventStep] = useState<string | null>(null)
 
   // Wait for transaction confirmation
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: confirmError } = useWaitForTransactionReceipt({
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed, 
+    error: confirmError,
+    data: transactionReceipt 
+  } = useWaitForTransactionReceipt({
     hash,
   })
 
@@ -86,12 +94,46 @@ export const useEventRegistry = () => {
   useEffect(() => {
     if (isConfirmed) {
       if (currentStep === 'approval') {
-        // Unlimited approval confirmed, refetch allowance
-        refetchAllowance()
-        setCurrentStep('idle')
-        console.log('🎉 JPYM unlimited approval confirmed! No more approvals needed for future transactions.')
+        // Unlimited approval confirmed, refetch allowance and wait briefly before setting to idle
+        console.log('🎉 JPYM unlimited approval confirmed! Refetching allowance...')
+        const refetchAndWait = async () => {
+          await refetchAllowance()
+          // Wait a brief moment for the allowance to be updated
+          setTimeout(() => {
+            setCurrentStep('idle')
+            console.log('Allowance refetched, ready for event creation.')
+          }, 1000)
+        }
+        refetchAndWait()
       } else if (currentStep === 'creation') {
-        // Event creation confirmed
+        // Event creation confirmed - parse transaction receipt for NFT contract address
+        if (transactionReceipt?.logs) {
+          try {
+            // Look for the EventCreated event in the transaction logs
+            for (const log of transactionReceipt.logs) {
+              try {
+                const decodedLog = decodeEventLog({
+                  abi: MIZU_EVENT_REGISTRY_ABI,
+                  data: log.data,
+                  topics: log.topics
+                })
+                
+                if (decodedLog.eventName === 'EventCreated' && decodedLog.args) {
+                  const eventContract = (decodedLog.args as any).eventContract as string
+                  setCreatedEventContract(eventContract)
+                  console.log('🎉 NFT Event Contract created at:', eventContract)
+                  break
+                }
+              } catch (logError) {
+                // Skip logs that can't be decoded with our ABI
+                continue
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing transaction receipt:', error)
+          }
+        }
+        
         queryClient.invalidateQueries({
           queryKey: ['eventRegistry'],
         })
@@ -101,7 +143,17 @@ export const useEventRegistry = () => {
         queryClient.invalidateQueries({
           queryKey: ['allEvents'],
         })
+        // Invalidate events API queries to refresh dashboard and event lists
+        queryClient.invalidateQueries({
+          queryKey: ['events']
+        })
+        if (address) {
+          queryClient.invalidateQueries({
+            queryKey: ['events', 'organizer', address]
+          })
+        }
         setCurrentStep('idle')
+        setLastCreatedEventStep('creation') // Mark that we just completed event creation
         console.log('Event creation confirmed! Refetching event data...')
       }
     }
@@ -153,6 +205,9 @@ export const useEventRegistry = () => {
     }
 
     try {
+      // Clear any previous event contract address
+      setCreatedEventContract(null)
+      
       console.log('Starting event creation with params:', params)
       console.log('Contract address:', MIZU_EVENT_REGISTRY_ADDRESS)
       console.log('User address:', address)
@@ -225,11 +280,17 @@ export const useEventRegistry = () => {
       throw new Error('Creation fee not loaded or wallet not connected')
     }
 
+    console.log('Checking allowance for event creation:', {
+      currentAllowance: currentAllowance?.toString() || '0',
+      creationFee: creationFee.toString(),
+      needsApproval: !currentAllowance || currentAllowance < creationFee
+    })
+
     // Check if we have enough allowance for this specific transaction
     const needsApproval = !currentAllowance || currentAllowance < creationFee
 
     if (needsApproval) {
-      console.log('JPYM approval needed.')
+      console.log('❌ JPYM approval needed.')
       console.log('Current allowance:', currentAllowance?.toString() || '0')
       console.log('Required for this transaction:', creationFee.toString())
       console.log('Will approve unlimited amount to avoid future approvals')
@@ -254,12 +315,17 @@ export const useEventRegistry = () => {
     currentAllowance,
     needsApproval: creationFee && currentAllowance ? currentAllowance < creationFee : !!creationFee, // Only need approval if we have creation fee loaded but insufficient allowance
     
+    // Utility functions
+    clearLastCreatedEventStep: () => setLastCreatedEventStep(null),
+    
     // Transaction states
     isTransactionPending: isPending,
     isTransactionConfirming: isConfirming,
     isTransactionConfirmed: isConfirmed,
     transactionHash: hash,
     currentStep,
+    createdEventContract, // NFT contract address of the created event
+    lastCreatedEventStep, // Track the last completed step
     
     // Errors
     transactionError: error,

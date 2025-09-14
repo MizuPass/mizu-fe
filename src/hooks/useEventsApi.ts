@@ -45,7 +45,7 @@ export const useEventDetails = (eventId: number | undefined) => {
   return useQuery({
     queryKey: EVENTS_QUERY_KEYS.detail(eventId || 0),
     queryFn: () => eventsApi.getEventDetails(eventId!),
-    enabled: !!eventId && eventId > 0,
+    enabled: eventId !== undefined && eventId >= 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
@@ -85,7 +85,7 @@ export const transformEventForComponent = (event: EventData) => {
     category: 'Event', // API doesn't provide category, using default
     description: event.eventMetadata.description,
     price: Number(event.ticketPrice) / 1e4, // Convert from JPYM smallest unit to JPYM
-    location: 'TBD', // API doesn't provide location in the current format
+    location: event.eventMetadata.location || 'TBD', // Get location from metadata
     date: new Date(Number(event.eventDate) * 1000),
     maxParticipants: Number(event.maxTickets),
     ticketsSold: Number(event.ticketsSold),

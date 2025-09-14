@@ -1,9 +1,10 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useEffect, useState, useRef } from 'react'
-import { formatEther, parseEther } from 'viem'
+import { useQueryClient } from '@tanstack/react-query'
+import { formatEther } from 'viem'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEventRegistry, type CreateEventParams } from '../hooks/useEventRegistry'
-import { useOrganizerActiveEvents, transformEventForComponent } from '../hooks/useEventsApi'
+import { useOrganizerActiveEvents, transformEventForComponent, EVENTS_QUERY_KEYS } from '../hooks/useEventsApi'
 import { formatEventPrice, formatEventDateTime } from '../services/eventsApi'
 
 // Dashboard stats will be calculated from real organizer events data
@@ -17,6 +18,7 @@ interface DashboardProps {
 export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
+  const queryClient = useQueryClient()
   
   // Fetch organizer events from API
   const { data: apiOrganizerEvents, isLoading: eventsLoading, isError: eventsError } = useOrganizerActiveEvents(address)
@@ -81,7 +83,8 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     isSimulatingCreate,
     approvalSimulationError,
     createEventSimulationError,
-    currentStep
+    currentStep,
+    createdEventContract
   } = useEventRegistry()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
@@ -116,6 +119,15 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
 
   // State to track pending event creation (after approval)
   const [pendingEventCreation, setPendingEventCreation] = useState<CreateEventParams | null>(null)
+  
+  // Success banner state
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false)
+  const [createdEventData, setCreatedEventData] = useState<{
+    eventName: string
+    transactionHash: string
+    nftContractAddress?: string
+  } | null>(null)
+  const [processedTransactionHash, setProcessedTransactionHash] = useState<string | null>(null)
   
   // Combined loading state
   const isProcessing = isUploading || isCreatingEvent || isApprovingMJPY || isSimulatingApproval || isSimulatingCreate
@@ -171,43 +183,85 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     checkScrollButtons()
   }, [])
 
+  // Check scroll buttons when switching between create form and dashboard
+  useEffect(() => {
+    if (!showCreateForm) {
+      // When switching back to dashboard, recheck scroll buttons
+      setTimeout(() => checkScrollButtons(), 100)
+    }
+  }, [showCreateForm])
+
   // Handle transaction confirmation
   useEffect(() => {
+    console.log('🔍 Transaction confirmation effect triggered:', {
+      isTransactionConfirmed,
+      currentStep,
+      transactionHash,
+      createdEventContract,
+      pendingEventCreation: !!pendingEventCreation,
+      formDataName: formData.name,
+      showSuccessBanner,
+      createdEventData: !!createdEventData,
+      processedTransactionHash
+    })
+    
     if (isTransactionConfirmed) {
-      // Only reset form if we completed event creation, not just approval
-      if (currentStep === 'creation') {
-        // Success! Reset form and show success message
+      console.log('✅ Transaction confirmed! Current step:', currentStep)
+      
+      // Check if this is an event creation (has NFT contract address) and we haven't processed this transaction yet
+      if (createdEventContract && transactionHash && processedTransactionHash !== transactionHash) {
+        console.log('🎉 Event creation confirmed - showing success banner (NFT contract exists)')
+        console.log('Processing transaction hash:', transactionHash)
+        
+        // Mark this transaction as processed to prevent infinite loops
+        setProcessedTransactionHash(transactionHash)
+        
+        // Success! Show success banner with event details
+        const eventName = pendingEventCreation?.eventName || formData.name || 'Unnamed Event'
+        
+        const eventData = {
+          eventName,
+          transactionHash: transactionHash || '',
+          nftContractAddress: createdEventContract || undefined
+        }
+        
+        console.log('📊 Setting success banner data:', eventData)
+        setCreatedEventData(eventData)
+        setShowSuccessBanner(true)
+        console.log('🎯 Success banner should now be visible!')
+        
+        // Immediately refetch event data to show the new event in dashboard and event lists
+        console.log('🔄 Refreshing event data to show new event...')
+        queryClient.invalidateQueries({
+          queryKey: EVENTS_QUERY_KEYS.all
+        })
+        if (address) {
+          queryClient.invalidateQueries({
+            queryKey: EVENTS_QUERY_KEYS.organizer(address)
+          })
+        }
+        queryClient.invalidateQueries({
+          queryKey: EVENTS_QUERY_KEYS.active
+        })
+        
         setIsUploading(false)
         setUploadStep('idle')
         setPendingEventCreation(null) // Clear pending creation
         
-        // Reset form data
-        setFormData({
-          name: '',
-          category: 'Gaming',
-          description: '',
-          external_url: '',
-          price: '',
-          location: '',
-          date: null,
-          maxParticipants: '',
-          eventImage: null
-        })
+        // DON'T reset form data - keep user on the form with success banner
+        // DON'T clear image preview - keep the form as is
+        // DON'T go back to dashboard - stay on create form
         
-        // Clear image preview
-        if (imagePreviewUrl) {
-          URL.revokeObjectURL(imagePreviewUrl)
-          setImagePreviewUrl(null)
-        }
+        console.log('🎉 Event created successfully! Staying on create form with success banner.')
+      } else if (currentStep === 'idle' && pendingEventCreation) {
+        // Approval completed (currentStep is now 'idle'), continue with event creation
+        console.log('✅ JPYM approval completed! Continuing with event creation...')
         
-        console.log('🎉 Event created successfully! Form reset for next event.')
-      } else if (currentStep === 'approval' && pendingEventCreation) {
-        // Approval confirmed, now automatically continue with event creation
-        console.log('✅ JPYM approval confirmed! Continuing with event creation...')
-        
-        // Continue with event creation using the pending parameters
+        // Add a small delay to ensure allowance is fully updated
         const continueSilently = async () => {
           try {
+            // Wait a moment for allowance to be fully refreshed
+            await new Promise(resolve => setTimeout(resolve, 1500))
             await createEvent(pendingEventCreation)
           } catch (error) {
             console.error('Error continuing event creation after approval:', error)
@@ -221,7 +275,23 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
         continueSilently()
       }
     }
-  }, [isTransactionConfirmed, currentStep, pendingEventCreation, imagePreviewUrl, createEvent])
+  }, [isTransactionConfirmed, currentStep, pendingEventCreation, imagePreviewUrl, createEvent, transactionHash, createdEventContract, formData.name, processedTransactionHash])
+
+  // Debug success banner state changes
+  useEffect(() => {
+    console.log('🎯 Success banner state changed:', { 
+      showSuccessBanner, 
+      createdEventData: !!createdEventData,
+      shouldRender: showSuccessBanner && !!createdEventData,
+      processedTransactionHash
+    })
+    
+    if (!showSuccessBanner) {
+      console.log('🔔 Banner should be hidden now')
+    } else if (showSuccessBanner && createdEventData) {
+      console.log('🔔 Banner should be visible now')
+    }
+  }, [showSuccessBanner, createdEventData, processedTransactionHash])
 
   // Handle transaction errors
   useEffect(() => {
@@ -342,6 +412,8 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
 
   const handleBackToList = () => {
     setShowCreateForm(false)
+    setShowSuccessBanner(false)
+    setProcessedTransactionHash(null) // Reset for next transaction
     
     // Clean up preview URL
     if (imagePreviewUrl) {
@@ -360,6 +432,9 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
       maxParticipants: '',
       eventImage: null
     })
+    
+    // Update scroll button states when returning to dashboard
+    setTimeout(() => checkScrollButtons(), 0)
   }
 
   const handleSubmitEvent = async (e: React.FormEvent) => {
@@ -371,6 +446,11 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     }
 
     try {
+      // Clear previous transaction tracking for new event creation
+      setProcessedTransactionHash(null)
+      setShowSuccessBanner(false)
+      setCreatedEventData(null)
+      
       setIsUploading(true)
       
       // Step 1: Upload image
@@ -615,6 +695,101 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
             </div>
           )}
 
+          {/* Success Banner */}
+          {(() => {
+            const shouldShow = showSuccessBanner && createdEventData
+            console.log('🎨 Banner render check:', { showSuccessBanner, hasCreatedEventData: !!createdEventData, shouldShow })
+            return shouldShow
+          })() && (
+            <div className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-3">
+              <div className="flex items-center gap-3">
+                {/* Left: Icon and Title */}
+                <div className="flex items-center gap-2">
+                  <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-5 h-5 animate-bounce flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-bold text-green-800">🎉 Event Created!</h3>
+                    <p className="text-xs text-green-700">{createdEventData?.eventName}</p>
+                  </div>
+                </div>
+
+                {/* Center: Links */}
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <a
+                    href={`https://explorer.kaigan.jsc.dev/tx/${createdEventData?.transactionHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-xs font-medium transition-colors flex-shrink-0"
+                    title="View Transaction"
+                  >
+                    <img src="/mizuIcons/mizu-www.svg" alt="TX" className="w-3 h-3" />
+                    TX
+                  </a>
+                  
+                  {createdEventData?.nftContractAddress && (
+                    <a
+                      href={`https://explorer.kaigan.jsc.dev/address/${createdEventData?.nftContractAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded text-xs font-medium transition-colors flex-shrink-0"
+                      title="View NFT Contract"
+                    >
+                      <img src="/mizuIcons/mizu-success.svg" alt="NFT" className="w-3 h-3" />
+                      NFT
+                    </a>
+                  )}
+                </div>
+
+                {/* Right: Action Buttons */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      console.log('🆕 "New Event" button clicked - resetting banner and form')
+                      setShowSuccessBanner(false)
+                      setProcessedTransactionHash(null) // Reset for next transaction
+                      setCreatedEventData(null) // Clear event data
+                      console.log('🆕 Banner state set to false, processedTransactionHash reset')
+                      // Reset form for new event
+                      setFormData({
+                        name: '',
+                        category: 'Gaming',
+                        description: '',
+                        external_url: '',
+                        price: '',
+                        location: '',
+                        date: null,
+                        maxParticipants: '',
+                        eventImage: null
+                      })
+                      if (imagePreviewUrl) {
+                        URL.revokeObjectURL(imagePreviewUrl)
+                        setImagePreviewUrl(null)
+                      }
+                    }}
+                    className="px-3 py-1 text-white bg-green-600 hover:bg-green-700 text-xs font-medium rounded transition-colors duration-200"
+                    title="Create Another Event"
+                  >
+                    New Event
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('❌ Dismiss button clicked - hiding banner')
+                      setShowSuccessBanner(false)
+                      setCreatedEventData(null) // Clear event data
+                      console.log('❌ Banner state set to false, data cleared')
+                      // Keep processedTransactionHash to prevent re-triggering this transaction
+                    }}
+                    className="text-green-600 hover:text-green-800 transition-colors p-1"
+                    title="Dismiss"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Simulation Error Banner */}
           {simulationError && (
             <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-4">
@@ -843,6 +1018,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
           </button>
         </div>
       )}
+
 
       {/* Main Content Cards */}
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
