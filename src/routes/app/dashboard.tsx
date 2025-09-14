@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi'
 import { useEffect } from 'react'
 import { Dashboard } from '../../components/Dashboard'
 import { useMizuPassIdentity } from '../../hooks/useMizuPassIdentity'
+import { DebugBalance } from '../../components/DebugBalance'
 
 function AppDashboardPage() {
   const { isConnected } = useAccount()
@@ -48,7 +49,12 @@ function AppDashboardPage() {
     navigate({ to: '/app' })
   }
 
-  return <Dashboard onBackToOnboarding={handleBackToOnboarding} />
+  return (
+    <>
+      <DebugBalance />
+      <Dashboard onBackToOnboarding={handleBackToOnboarding} />
+    </>
+  )
 }
 
 export const Route = createFileRoute('/app/dashboard')({
