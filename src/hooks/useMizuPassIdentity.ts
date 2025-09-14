@@ -5,7 +5,7 @@ import type { Address } from 'viem'
 import { useEffect } from 'react'
 
 // API Base URL
-const API_BASE_URL = 'https://services.mizupass.com/api/identity'
+import { buildApiUrl, API_PATHS } from '../config/api'
 
 export const useMizuPassIdentity = () => {
   const { address } = useAccount()
@@ -72,7 +72,7 @@ export const useMizuPassIdentity = () => {
       queryKey: ['isVerified', userAddress],
       queryFn: async () => {
         if (!userAddress) return false
-        const response = await fetch(`${API_BASE_URL}/isVerified/${userAddress}`)
+        const response = await fetch(buildApiUrl(`${API_PATHS.IDENTITY_IS_VERIFIED}/${userAddress}`))
         if (!response.ok) throw new Error('Failed to check verification status')
         const data = await response.json()
         // Response format: { "userAddress": "0x...", "isVerified": false }
@@ -112,7 +112,7 @@ export const useMizuPassIdentity = () => {
       queryKey: ['isZKPassportVerified', userAddress],
       queryFn: async () => {
         if (!userAddress) return false
-        const response = await fetch(`${API_BASE_URL}/isZKPassportVerified/${userAddress}`)
+        const response = await fetch(buildApiUrl(`${API_PATHS.IDENTITY_ZK_VERIFIED}/${userAddress}`))
         if (!response.ok) throw new Error('Failed to check ZK passport verification')
         const data = await response.json()
         // Response format: { "userAddress": "0x...", "isZKPassportVerified": false }
@@ -128,7 +128,7 @@ export const useMizuPassIdentity = () => {
       queryKey: ['verifyMizuhikiSBT', userAddress],
       queryFn: async () => {
         if (!userAddress) return false
-        const response = await fetch(`${API_BASE_URL}/verifyMizuhikiSBT/${userAddress}`)
+        const response = await fetch(buildApiUrl(`${API_PATHS.IDENTITY_MIZUHIKI_SBT}/${userAddress}`))
         if (!response.ok) throw new Error('Failed to verify Mizuhiki SBT')
         const data = await response.json()
         // Response format: { "userAddress": "0x...", "mizuhikiSBTVerified": true }

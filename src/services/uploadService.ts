@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://services.mizupass.com'
+import { API_CONFIG, buildUploadUrl } from '../config/api'
 
 // Types for upload responses
 export interface FileUploadResponse {
@@ -54,7 +54,7 @@ export const uploadFileToIPFS = async (file: File): Promise<FileUploadResponse> 
   formData.append('file', file)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/upload/file`, {
+    const response = await fetch(buildUploadUrl('/file'), {
       method: 'POST',
       body: formData,
     })
@@ -75,11 +75,9 @@ export const uploadFileToIPFS = async (file: File): Promise<FileUploadResponse> 
 // Upload JSON metadata to IPFS via Pinata
 export const uploadJSONToIPFS = async (metadata: EventNFTMetadata): Promise<JsonUploadResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/upload/json`, {
+    const response = await fetch(buildUploadUrl('/json'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: API_CONFIG.headers,
       body: JSON.stringify(metadata),
     })
 

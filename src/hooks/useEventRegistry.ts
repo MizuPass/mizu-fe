@@ -1,7 +1,11 @@
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount, useSimulateContract } from 'wagmi'
-import { MIZU_EVENT_REGISTRY_ADDRESS, MIZU_EVENT_REGISTRY_ABI, MJPY_TOKEN_ADDRESS, ERC20_ABI } from '../config/contracts'
+import { MIZU_EVENT_REGISTRY_ADDRESS, MIZU_EVENT_REGISTRY_ABI, JPYM_TOKEN_ADDRESS, ERC20_ABI } from '../config/contracts'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { maxUint256 } from 'viem'
+
+// Constants
+export const UNLIMITED_ALLOWANCE = maxUint256 // Maximum possible uint256 value for unlimited spending
 
 // Create Event Parameters interface
 export interface CreateEventParams {
@@ -26,16 +30,16 @@ export const useEventRegistry = () => {
     hash,
   })
 
-  // Get EVENT_CREATION_FEE_MJPY from contract
+  // Get EVENT_CREATION_FEE_JPYM from contract
   const { data: creationFee } = useReadContract({
     address: MIZU_EVENT_REGISTRY_ADDRESS,
     abi: MIZU_EVENT_REGISTRY_ABI,
-    functionName: 'EVENT_CREATION_FEE_MJPY',
+    functionName: 'EVENT_CREATION_FEE_JPYM',
   })
 
-  // Check current MJPY allowance for Event Registry
+  // Check current JPYM allowance for Event Registry
   const { data: currentAllowance, refetch: refetchAllowance } = useReadContract({
-    address: MJPY_TOKEN_ADDRESS,
+    address: JPYM_TOKEN_ADDRESS,
     abi: ERC20_ABI,
     functionName: 'allowance',
     args: address ? [address, MIZU_EVENT_REGISTRY_ADDRESS] : undefined,
@@ -45,14 +49,14 @@ export const useEventRegistry = () => {
   })
 
 
-  // Simulate MJPY approval
+  // Simulate JPYM approval with unlimited allowance
   const { data: approvalSimulation, error: approvalSimulationError, isLoading: isSimulatingApproval } = useSimulateContract({
-    address: MJPY_TOKEN_ADDRESS,
+    address: JPYM_TOKEN_ADDRESS,
     abi: ERC20_ABI,
     functionName: 'approve',
-    args: creationFee ? [MIZU_EVENT_REGISTRY_ADDRESS, creationFee] : undefined,
+    args: [MIZU_EVENT_REGISTRY_ADDRESS, UNLIMITED_ALLOWANCE],
     query: {
-      enabled: !!creationFee && currentStep === 'approval'
+      enabled: !!address && currentStep === 'approval'
     }
   })
 
@@ -71,7 +75,9 @@ export const useEventRegistry = () => {
       simulationParams.eventSymbol
     ] : undefined,
     query: {
-      enabled: !!simulationParams && currentStep === 'creation'
+      enabled: !!simulationParams && !!address && !!creationFee && !!currentAllowance && currentStep === 'creation',
+      retry: 3,
+      retryDelay: 1000
     }
   })
 
@@ -80,10 +86,10 @@ export const useEventRegistry = () => {
   useEffect(() => {
     if (isConfirmed) {
       if (currentStep === 'approval') {
-        // Approval confirmed, refetch allowance
+        // Unlimited approval confirmed, refetch allowance
         refetchAllowance()
         setCurrentStep('idle')
-        console.log('MJPY approval confirmed! Ready to create event.')
+        console.log('🎉 JPYM unlimited approval confirmed! No more approvals needed for future transactions.')
       } else if (currentStep === 'creation') {
         // Event creation confirmed
         queryClient.invalidateQueries({
@@ -101,33 +107,40 @@ export const useEventRegistry = () => {
     }
   }, [isConfirmed, currentStep, queryClient, refetchAllowance])
 
-  // Approve MJPY tokens for Event Registry
-  const approveMJPY = async () => {
-    if (!creationFee) {
-      throw new Error('Creation fee not loaded')
+  // Approve JPYM tokens for Event Registry with unlimited allowance
+  const approveJPYM = async () => {
+    if (!address) {
+      throw new Error('Wallet not connected')
     }
 
     try {
-      console.log('Simulating MJPY approval...', creationFee.toString())
+      console.log('Starting JPYM unlimited approval...', UNLIMITED_ALLOWANCE.toString())
       setCurrentStep('approval')
 
-      // Wait a bit for simulation to run
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      if (approvalSimulationError) {
-        console.error('Approval simulation failed:', approvalSimulationError)
-        throw new Error(`Simulation failed: ${approvalSimulationError.message}`)
-      }
-
-      if (!approvalSimulation) {
-        throw new Error('Simulation not ready')
-      }
-
-      console.log('Simulation successful, executing approval...')
+      // Wait for simulation to run
+      let attempts = 0
+      const maxAttempts = 10
       
-      return writeContract(approvalSimulation.request)
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        if (approvalSimulationError) {
+          console.error('Approval simulation failed:', approvalSimulationError)
+          throw new Error(`Simulation failed: ${approvalSimulationError.message}`)
+        }
+
+        if (approvalSimulation) {
+          console.log('✅ Unlimited approval simulation successful, executing approval...')
+          console.log('This will allow unlimited JPYM spending, no more approvals needed!')
+          return writeContract(approvalSimulation.request)
+        }
+        
+        attempts++
+      }
+
+      throw new Error('Approval simulation timed out')
     } catch (error) {
-      console.error('Error approving MJPY:', error)
+      console.error('Error approving JPYM:', error)
       setCurrentStep('idle')
       throw error
     }
@@ -135,26 +148,69 @@ export const useEventRegistry = () => {
 
   // Create Event function (after approval)
   const createEventOnContract = async (params: CreateEventParams) => {
+    if (!address) {
+      throw new Error('Wallet not connected')
+    }
+
     try {
-      console.log('Simulating event creation...', params)
+      console.log('Starting event creation with params:', params)
+      console.log('Contract address:', MIZU_EVENT_REGISTRY_ADDRESS)
+      console.log('User address:', address)
+      console.log('Creation fee loaded:', !!creationFee, creationFee?.toString())
+      console.log('Current allowance:', currentAllowance?.toString())
+      
       setCurrentStep('creation')
       setSimulationParams(params)
 
-      // Wait a bit for simulation to run
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      if (createEventSimulationError) {
-        console.error('Event creation simulation failed:', createEventSimulationError)
-        throw new Error(`Simulation failed: ${createEventSimulationError.message}`)
-      }
-
-      if (!createEventSimulation) {
-        throw new Error('Simulation not ready')
-      }
-
-      console.log('Simulation successful, executing event creation...')
+      // Wait for simulation to run with better debugging
+      let attempts = 0
+      const maxAttempts = 15 // Increased attempts
       
-      return writeContract(createEventSimulation.request)
+      while (attempts < maxAttempts) {
+        console.log(`Simulation attempt ${attempts + 1}/${maxAttempts}`)
+        console.log('Simulation loading:', isSimulatingCreate)
+        console.log('Simulation error:', createEventSimulationError?.message)
+        console.log('Simulation data available:', !!createEventSimulation)
+        
+        await new Promise(resolve => setTimeout(resolve, 300)) // Slightly longer wait
+        
+        if (createEventSimulationError) {
+          console.error('Event creation simulation failed:', createEventSimulationError)
+          throw new Error(`Simulation failed: ${createEventSimulationError.message}`)
+        }
+
+        if (createEventSimulation) {
+          console.log('Simulation successful! Request:', createEventSimulation.request)
+          return writeContract(createEventSimulation.request)
+        }
+        
+        attempts++
+      }
+
+      console.error('Simulation timed out after', maxAttempts, 'attempts')
+      console.log('Final state - loading:', isSimulatingCreate, 'error:', createEventSimulationError, 'data:', !!createEventSimulation)
+      
+      // Fallback: try direct contract call without simulation for debugging
+      console.log('Attempting direct contract call without simulation...')
+      try {
+        return writeContract({
+          address: MIZU_EVENT_REGISTRY_ADDRESS,
+          abi: MIZU_EVENT_REGISTRY_ABI,
+          functionName: 'createEvent',
+          args: [
+            params.ipfsHash,
+            params.ticketIpfsHash,
+            params.ticketPrice,
+            params.maxTickets,
+            params.eventDate,
+            params.eventName,
+            params.eventSymbol
+          ]
+        })
+      } catch (directCallError) {
+        console.error('Direct contract call also failed:', directCallError)
+        throw new Error(`Event creation failed - simulation timed out and direct call failed: ${directCallError instanceof Error ? directCallError.message : 'Unknown error'}`)
+      }
     } catch (error) {
       console.error('Error creating event:', error)
       setCurrentStep('idle')
@@ -169,14 +225,20 @@ export const useEventRegistry = () => {
       throw new Error('Creation fee not loaded or wallet not connected')
     }
 
-    // Check if we have enough allowance
+    // Check if we have enough allowance for this specific transaction
     const needsApproval = !currentAllowance || currentAllowance < creationFee
 
     if (needsApproval) {
-      console.log('MJPY approval needed. Current allowance:', currentAllowance?.toString(), 'Required:', creationFee.toString())
+      console.log('JPYM approval needed.')
+      console.log('Current allowance:', currentAllowance?.toString() || '0')
+      console.log('Required for this transaction:', creationFee.toString())
+      console.log('Will approve unlimited amount to avoid future approvals')
       throw new Error('APPROVAL_NEEDED') // Special error to trigger approval flow
     }
 
+    console.log('✅ Sufficient JPYM allowance available:', currentAllowance.toString())
+    console.log('Required for this transaction:', creationFee.toString())
+    
     // We have sufficient approval, create the event
     return createEventOnContract(params)
   }
@@ -184,12 +246,13 @@ export const useEventRegistry = () => {
   return {
     // Functions
     createEvent,
-    approveMJPY,
+    approveJPYM,
+    approveMJPY: approveJPYM, // Legacy alias
     
     // Contract data
     creationFee,
     currentAllowance,
-    needsApproval: creationFee && currentAllowance ? currentAllowance < creationFee : true,
+    needsApproval: creationFee && currentAllowance ? currentAllowance < creationFee : !!creationFee, // Only need approval if we have creation fee loaded but insufficient allowance
     
     // Transaction states
     isTransactionPending: isPending,

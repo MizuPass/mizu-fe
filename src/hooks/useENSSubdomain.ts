@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_CONFIG, buildApiUrl, API_PATHS } from '../config/api'
 
 export interface ClaimENSRequest {
   subdomain: string
@@ -30,10 +31,10 @@ export const useENSSubdomain = () => {
 
       console.log('Claiming ENS subdomain with payload:', payload)
 
-      const response = await fetch('https://services.mizupass.com/api/ens/createSubEns', {
+      const response = await fetch(buildApiUrl(API_PATHS.ENS_CREATE_SUBDOMAIN), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          ...API_CONFIG.headers,
           'X-API-Key': 'pqwjyftfxavlqiixowhbaasinmppfnfl'
         },
         body: JSON.stringify(payload),

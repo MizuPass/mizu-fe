@@ -2,21 +2,13 @@ import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useEffect, useState, useRef } from 'react'
 import { formatEther, parseEther } from 'viem'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { mockEvents } from '../constants/mockEvents'
 import { useEventRegistry, type CreateEventParams } from '../hooks/useEventRegistry'
+import { useOrganizerActiveEvents, transformEventForComponent } from '../hooks/useEventsApi'
+import { formatEventPrice, formatEventDateTime } from '../services/eventsApi'
 
-// Mock data for dashboard stats
-const mockDashboardStats = {
-  totalEvents: 3,
-  activeEvents: 2,
-  totalRevenue: '¥45,800',
-  totalTicketsSold: 127,
-  monthlyRevenue: '¥28,400',
-  avgRating: 4.8
-}
+// Dashboard stats will be calculated from real organizer events data
 
-// Mock organizer events - use all events + duplicates to demonstrate scrolling
-const organizerEvents = [...mockEvents, ...mockEvents.slice(0, 2)] // More events for scrolling demo
+// This will be replaced with API data in the component
 
 interface DashboardProps {
   onBackToOnboarding?: () => void
@@ -25,6 +17,46 @@ interface DashboardProps {
 export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
+  
+  // Fetch organizer events from API
+  const { data: apiOrganizerEvents, isLoading: eventsLoading, isError: eventsError } = useOrganizerActiveEvents(address)
+  
+  // Transform API data to component format with status calculation
+  const organizerEvents = apiOrganizerEvents ? apiOrganizerEvents.map(event => {
+    const transformedEvent = transformEventForComponent(event)
+    // Calculate status based on API data
+    const soldOut = Number(event.ticketsSold) >= Number(event.maxTickets)
+    const eventDate = new Date(Number(event.eventDate) * 1000)
+    const isUpcoming = eventDate > new Date()
+    
+    const status = soldOut ? 'sold-out' : (isUpcoming ? 'available' : 'upcoming') as 'sold-out' | 'available' | 'upcoming'
+    
+    return {
+      ...transformedEvent,
+      status,
+      participants: Number(event.ticketsSold),
+      eventImage: event.eventImageUrl || '/mizuPass.svg',
+      mizuIcon: '/mizuIcons/mizu-www.svg',
+      price: formatEventPrice(event.ticketPrice),
+      date: formatEventDateTime(event.eventDate),
+      bgColor: 'white',
+    }
+  }) : []
+
+  // Calculate dashboard stats from real data
+  const totalRevenueNum = organizerEvents.reduce((total, event) => {
+    const priceNum = Number(event.price.replace(/[^0-9.-]+/g, ''))
+    return total + (priceNum * event.participants)
+  }, 0)
+  
+  const dashboardStats = {
+    totalEvents: organizerEvents.length,
+    activeEvents: organizerEvents.filter(event => event.status === 'available').length,
+    totalRevenue: `¥${totalRevenueNum.toLocaleString()}`,
+    totalTicketsSold: organizerEvents.reduce((total, event) => total + event.participants, 0),
+    monthlyRevenue: `¥${Math.round(totalRevenueNum * 0.6).toLocaleString()}`, // Estimate 60% is this month
+    avgRating: 4.8 // This would come from API in a real implementation
+  }
   const { data: balance, isError, isLoading } = useBalance({
     address,
     query: {
@@ -36,7 +68,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
   // Event Registry Hook
   const {
     createEvent,
-    approveMJPY,
+    approveMJPY: approveJPYM,
     isTransactionPending,
     isTransactionConfirming,
     isTransactionConfirmed,
@@ -48,7 +80,8 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
     isSimulatingApproval,
     isSimulatingCreate,
     approvalSimulationError,
-    createEventSimulationError
+    createEventSimulationError,
+    currentStep
   } = useEventRegistry()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
@@ -80,6 +113,9 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
 
   // Error state for simulation errors
   const [simulationError, setSimulationError] = useState<string | null>(null)
+
+  // State to track pending event creation (after approval)
+  const [pendingEventCreation, setPendingEventCreation] = useState<CreateEventParams | null>(null)
   
   // Combined loading state
   const isProcessing = isUploading || isCreatingEvent || isApprovingMJPY || isSimulatingApproval || isSimulatingCreate
@@ -138,32 +174,54 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
   // Handle transaction confirmation
   useEffect(() => {
     if (isTransactionConfirmed) {
-      // Success! Reset form and show success message
-      setIsUploading(false)
-      setUploadStep('idle')
-      
-      // Reset form data
-      setFormData({
-        name: '',
-        category: 'Gaming',
-        description: '',
-        external_url: '',
-        price: '',
-        location: '',
-        date: null,
-        maxParticipants: '',
-        eventImage: null
-      })
-      
-      // Clear image preview
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl)
-        setImagePreviewUrl(null)
+      // Only reset form if we completed event creation, not just approval
+      if (currentStep === 'creation') {
+        // Success! Reset form and show success message
+        setIsUploading(false)
+        setUploadStep('idle')
+        setPendingEventCreation(null) // Clear pending creation
+        
+        // Reset form data
+        setFormData({
+          name: '',
+          category: 'Gaming',
+          description: '',
+          external_url: '',
+          price: '',
+          location: '',
+          date: null,
+          maxParticipants: '',
+          eventImage: null
+        })
+        
+        // Clear image preview
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl)
+          setImagePreviewUrl(null)
+        }
+        
+        console.log('🎉 Event created successfully! Form reset for next event.')
+      } else if (currentStep === 'approval' && pendingEventCreation) {
+        // Approval confirmed, now automatically continue with event creation
+        console.log('✅ JPYM approval confirmed! Continuing with event creation...')
+        
+        // Continue with event creation using the pending parameters
+        const continueSilently = async () => {
+          try {
+            await createEvent(pendingEventCreation)
+          } catch (error) {
+            console.error('Error continuing event creation after approval:', error)
+            setSimulationError(`Failed to create event after approval: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            setIsUploading(false)
+            setUploadStep('idle')
+            setPendingEventCreation(null)
+          }
+        }
+        
+        continueSilently()
       }
-      
-      console.log('🎉 Event created successfully! Form reset for next event.')
     }
-  }, [isTransactionConfirmed, imagePreviewUrl])
+  }, [isTransactionConfirmed, currentStep, pendingEventCreation, imagePreviewUrl, createEvent])
 
   // Handle transaction errors
   useEffect(() => {
@@ -194,7 +252,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
   // Monitor simulation errors
   useEffect(() => {
     if (approvalSimulationError) {
-      setSimulationError(`MJPY approval simulation failed: ${approvalSimulationError.message}`)
+      setSimulationError(`JPYM approval simulation failed: ${approvalSimulationError.message}`)
     }
   }, [approvalSimulationError])
 
@@ -355,18 +413,38 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
         message: 'Creating event on blockchain...'
       })
 
-      // Prepare smart contract parameters
+      // Prepare smart contract parameters with validation
       const createEventParams: CreateEventParams = {
         ipfsHash: eventMetadataCID,
         ticketIpfsHash: ticketMetadataCID,
-        ticketPrice: parseEther(formData.price.toString()), // Convert to wei
+        ticketPrice: BigInt(Math.floor(parseFloat(formData.price) * 1e4)), // Convert to JPYM smallest unit (4 decimals)
         maxTickets: BigInt(parseInt(formData.maxParticipants)),
         eventDate: BigInt(formData.date!), // We know it's not null due to form validation
         eventName: formData.name,
         eventSymbol: formData.name.substring(0, 6).toUpperCase().replace(/\s/g, '') // Generate symbol from name
       }
 
-      console.log('Creating event with params:', createEventParams)
+      console.log('Creating event with validated params:', {
+        ...createEventParams,
+        ticketPrice: createEventParams.ticketPrice.toString(),
+        maxTickets: createEventParams.maxTickets.toString(),
+        eventDate: createEventParams.eventDate.toString(),
+        eventDateReadable: new Date(Number(createEventParams.eventDate) * 1000).toISOString()
+      })
+
+      // Validate parameters
+      if (!eventMetadataCID || !ticketMetadataCID) {
+        throw new Error('IPFS hashes are missing')
+      }
+      if (createEventParams.ticketPrice <= 0n) {
+        throw new Error('Ticket price must be greater than 0')
+      }
+      if (createEventParams.maxTickets <= 0n) {
+        throw new Error('Max tickets must be greater than 0')
+      }
+      if (!createEventParams.eventName.trim()) {
+        throw new Error('Event name is required')
+      }
       
       // Call smart contract
       try {
@@ -387,28 +465,28 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
         })
       } catch (contractError: any) {
         if (contractError.message === 'APPROVAL_NEEDED') {
-          // Need to approve MJPY first
-          console.log('MJPY approval required before creating event')
-          console.log('Starting MJPY approval process...')
+          // Need to approve JPYM first
+          console.log('JPYM approval required before creating event')
+          console.log('Starting JPYM approval process...')
+          
+          // Store event parameters for continuation after approval
+          setPendingEventCreation(createEventParams)
           
           try {
             // Clear any previous simulation errors
             setSimulationError(null)
-            await approveMJPY()
+            await approveJPYM()
+            // Don't reset upload states - let the transaction confirmation handler continue the flow
           } catch (approvalError: any) {
             console.error('Approval failed:', approvalError)
             setSimulationError(`Approval simulation failed: ${approvalError.message}`)
             
-            // Reset upload states since approval failed
+            // Reset upload states and clear pending creation since approval failed
             setIsUploading(false)
             setUploadStep('idle')
+            setPendingEventCreation(null)
             return // Don't proceed, show error banner
           }
-          
-          // Reset upload states since we only did approval
-          setIsUploading(false)
-          setUploadStep('idle')
-          return // Don't proceed to success, user needs to submit again after approval
         } else if (contractError.message.includes('Simulation failed')) {
           // Simulation error - show error banner without resetting form
           setSimulationError(contractError.message)
@@ -473,8 +551,8 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
                   Creating Your Event
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  {isApprovingMJPY && isTransactionPending ? 'Approve MJPY tokens in wallet...' :
-                   isApprovingMJPY && isTransactionConfirming ? 'Confirming MJPY approval...' :
+                  {isApprovingMJPY && isTransactionPending ? 'Approve JPYM tokens in wallet...' :
+                   isApprovingMJPY && isTransactionConfirming ? 'Confirming JPYM approval...' :
                    isTransactionPending ? 'Waiting for wallet confirmation...' :
                    isTransactionConfirming ? 'Confirming transaction on blockchain...' :
                    uploadProgress.message}
@@ -596,7 +674,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price (MJPY)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price (JPYM)</label>
                 <input
                   type="number"
                   name="price"
@@ -734,7 +812,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
                 {isProcessing ? (
                   <>
                     <img src="/mizuIcons/mizu-tired.svg" alt="Creating" className="w-4 h-4 inline mr-2 animate-spin" />
-                    {isApprovingMJPY && isTransactionPending ? 'Approve MJPY...' :
+                    {isApprovingMJPY && isTransactionPending ? 'Approve JPYM...' :
                      isApprovingMJPY && isTransactionConfirming ? 'Approving...' :
                      isTransactionPending ? 'Confirm in Wallet...' : 
                      isTransactionConfirming ? 'Confirming...' : 
@@ -848,7 +926,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
               <div className="flex items-center">
                 <img src="/mizuIcons/mizu-www.svg" alt="Events" className="w-5 h-5 mr-1" />
                 <span className="ml-1 font-bold text-sm" style={{ color: 'var(--primary)' }}>
-                  {mockDashboardStats.totalEvents}
+                  {dashboardStats.totalEvents}
                 </span>
               </div>
             </div>
@@ -859,7 +937,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
               <div className="flex items-center">
                 <img src="/mizuIcons/mizu-success.svg" alt="Active" className="w-5 h-5 mr-1" />
                 <span className="ml-1 font-bold text-sm text-green-600">
-                  {mockDashboardStats.activeEvents}
+                  {dashboardStats.activeEvents}
                 </span>
               </div>
             </div>
@@ -870,7 +948,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
               <div className="flex items-center">
                 <img src="/mizuIcons/mizu-love.svg" alt="Revenue" className="w-5 h-5 mr-1" />
                 <span className="ml-1 font-bold text-sm" style={{ color: 'var(--primary)' }}>
-                  {mockDashboardStats.totalRevenue}
+                  {dashboardStats.totalRevenue}
                 </span>
               </div>
             </div>
@@ -881,7 +959,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
               <div className="flex items-center">
                 <img src="/mizuIcons/mizu-okey.svg" alt="Tickets" className="w-5 h-5 mr-1" />
                 <span className="ml-1 font-bold text-sm text-blue-600">
-                  {mockDashboardStats.totalTicketsSold}
+                  {dashboardStats.totalTicketsSold}
                 </span>
               </div>
             </div>
@@ -892,7 +970,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
               <div className="flex items-center">
                 <img src="/mizuIcons/mizu-cute.svg" alt="Rating" className="w-5 h-5 mr-1" />
                 <span className="ml-1 font-bold text-sm text-yellow-600">
-                  {mockDashboardStats.avgRating} ⭐
+                  {dashboardStats.avgRating} ⭐
                 </span>
               </div>
             </div>
@@ -925,7 +1003,27 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
             onScroll={handleScroll}
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {organizerEvents.map((event, index) => (
+            {eventsLoading ? (
+              // Loading state for events
+              <div className="flex-shrink-0 w-72 bg-gray-50 rounded-xl p-4 text-center">
+                <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-8 h-8 mx-auto mb-2 animate-spin" />
+                <p className="text-xs text-gray-600">Loading events...</p>
+              </div>
+            ) : eventsError ? (
+              // Error state for events
+              <div className="flex-shrink-0 w-72 bg-red-50 rounded-xl p-4 text-center">
+                <img src="/mizuIcons/mizu-attention.svg" alt="Error" className="w-8 h-8 mx-auto mb-2" />
+                <p className="text-xs text-gray-600">Failed to load events</p>
+              </div>
+            ) : organizerEvents.length === 0 ? (
+              // Empty state
+              <div className="flex-shrink-0 w-72 bg-gray-50 rounded-xl p-4 text-center">
+                <img src="/mizuIcons/mizu-love.svg" alt="No Events" className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-xs text-gray-600">No events created yet</p>
+                <p className="text-xs text-gray-500 mt-1">Create your first event to get started!</p>
+              </div>
+            ) : (
+              organizerEvents.map((event, index) => (
               <div key={`${event.id}-${index}`} className="flex-shrink-0 w-72 bg-gray-50 rounded-xl p-4 text-left hover:shadow-md transition-all duration-200">
                 <div className="flex items-center gap-3 mb-3">
                   <img src={event.mizuIcon} alt={event.category} className="w-8 h-8" />
@@ -965,7 +1063,7 @@ export function Dashboard({ onBackToOnboarding }: DashboardProps = {}) {
                   </button>
                 </div>
               </div>
-            ))}
+            )))}
 
             {/* Add More Events Placeholder */}
             <div className="flex-shrink-0 w-72 bg-gray-100/80 backdrop-blur-sm rounded-xl p-4 h-full border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center">

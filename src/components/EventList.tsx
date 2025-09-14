@@ -1,7 +1,8 @@
 import { MapPin, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
-
-import { mockEvents, type Event } from '../constants/mockEvents'
+import { useActiveEvents, transformEventForComponent } from '../hooks/useEventsApi'
+import { formatEventPrice, formatEventDateTime } from '../services/eventsApi'
+import type { Event } from '../constants/mockEvents'
 
 interface EventListProps {
   onEventClick: (event: Event) => void
@@ -12,6 +13,31 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
+
+  // Fetch active events from API
+  const { data: apiEvents, isLoading, isError, error } = useActiveEvents()
+  
+  // Transform API data to component format with status calculation
+  const events = apiEvents ? apiEvents.map(event => {
+    const transformedEvent = transformEventForComponent(event)
+    // Calculate status based on API data
+    const soldOut = Number(event.ticketsSold) >= Number(event.maxTickets)
+    const eventDate = new Date(Number(event.eventDate) * 1000)
+    const isUpcoming = eventDate > new Date()
+    
+    const status = soldOut ? 'sold-out' : (isUpcoming ? 'available' : 'upcoming') as 'sold-out' | 'available' | 'upcoming'
+    
+    return {
+      ...transformedEvent,
+      status,
+      participants: Number(event.ticketsSold),
+      eventImage: event.eventImageUrl || '/mizuPass.svg',
+      mizuIcon: '/mizuIcons/mizu-www.svg', // Default icon
+      price: formatEventPrice(event.ticketPrice),
+      date: formatEventDateTime(event.eventDate),
+      bgColor: 'white', // Default background color
+    }
+  }) : []
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -65,8 +91,36 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
   useEffect(() => {
     // Initialize scroll button states
     checkScrollButtons()
-  }, [])
+  }, [events.length])
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 w-full h-full flex flex-col justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-16 h-16 mx-auto mb-3 animate-spin" />
+            <p className="text-gray-600">Loading events...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="max-w-6xl mx-auto px-6 w-full h-full flex flex-col justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <img src="/mizuIcons/mizu-attention.svg" alt="Error" className="w-16 h-16 mx-auto mb-3" />
+            <p className="text-gray-600 mb-2">Failed to load events</p>
+            <p className="text-gray-500 text-sm">{error?.message || 'Please try again later'}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 w-full h-full flex flex-col justify-center">
@@ -91,7 +145,7 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
         
         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
           <img src="/mizuIcons/mizu-success.svg" alt="Live" className="w-4 h-4 animate-pulse" />
-          <span className="text-sm font-medium text-gray-700">{mockEvents.length} Events Live</span>
+          <span className="text-sm font-medium text-gray-700">{events.length} Events Live</span>
         </div>
       </div>
 
@@ -109,7 +163,7 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
           
           <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 shadow-lg">
             <img src="/mizuIcons/mizu-success.svg" alt="Live" className="w-3 h-3 animate-pulse" />
-            <span className="text-xs font-medium text-gray-700">{mockEvents.length} Live</span>
+            <span className="text-xs font-medium text-gray-700">{events.length} Live</span>
           </div>
         </div>
         
@@ -131,7 +185,7 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
           onScroll={handleScroll}
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {mockEvents.map((event) => (
+          {events.map((event) => (
             <div
               key={event.id}
               onClick={() => onEventClick(event)}

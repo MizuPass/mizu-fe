@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ZKPassport, type ProofResult } from '@zkpassport/sdk'
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { MIZUPASS_IDENTITY_ADDRESS, MIZUPASS_IDENTITY_ABI } from '../config/contracts'
+import { API_CONFIG, buildApiUrl, API_PATHS } from '../config/api'
 
 export const useZKPassportVerification = () => {
   const [message, setMessage] = useState('')
@@ -236,9 +237,9 @@ export const useZKPassportVerification = () => {
               console.log('Fallback backend payload:', payload)
 
               try {
-                const response = await fetch('https://services.mizupass.com/api/zkpassport/verify', {
+                const response = await fetch(buildApiUrl(API_PATHS.ZK_PASSPORT_VERIFY), {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: API_CONFIG.headers,
                   body: JSON.stringify(payload),
                 })
 
@@ -290,9 +291,9 @@ export const useZKPassportVerification = () => {
         setVerified(verified)
         setRequestInProgress(false)
 
-        const res = await fetch('https://services.mizupass.com/api/zkpassport/verify', {
+        const res = await fetch(buildApiUrl(API_PATHS.ZK_PASSPORT_VERIFY), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: API_CONFIG.headers,
           body: JSON.stringify({
             queryResult: result,
             proofs,
