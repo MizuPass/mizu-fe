@@ -193,18 +193,91 @@ function AppPage() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between bg-white/50 rounded-lg p-2">
-                    <span className="text-gray-900 font-medium text-sm">Verified</span>
-                    <div className="flex items-center">
-                      {currentUser.isVerified ? (
-                        <img src="/mizuIcons/mizu-love.svg" alt="Verified" className="w-5 h-5" />
-                      ) : (
-                        <img src="/mizuIcons/mizu-mendokusai.svg" alt="Pending" className="w-5 h-5" />
-                      )}
-                      <span className={`ml-1 font-bold text-xs ${currentUser.isVerified ? 'text-green-600' : 'text-orange-500'}`}>
-                        {currentUser.isVerified ? 'Verified!' : 'Pending'}
-                      </span>
+                  <div className="bg-white/50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-900 font-medium text-sm">Verified</span>
+                      <div className="flex items-center">
+                        {currentUser.isVerified ? (
+                          <img src="/mizuIcons/mizu-love.svg" alt="Verified" className="w-5 h-5" />
+                        ) : (
+                          <img src="/mizuIcons/mizu-mendokusai.svg" alt="Pending" className="w-5 h-5" />
+                        )}
+                        <span className={`ml-1 font-bold text-xs ${currentUser.isVerified ? 'text-green-600' : 'text-red-500'}`}>
+                          {currentUser.isVerified ? 'TRUE' : 'FALSE'}
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Verification Methods Breakdown */}
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">ZK Passport:</span>
+                        <div className="flex items-center">
+                          {currentUser.isZKVerified ? (
+                            <>
+                              <img src="/mizuIcons/mizu-success.svg" alt="Verified" className="w-3 h-3" />
+                              <span className="ml-1 text-green-600 font-medium">Verified</span>
+                            </>
+                          ) : (
+                            <>
+                              <img src="/mizuIcons/mizu-sad.svg" alt="Not verified" className="w-3 h-3" />
+                              <span className="ml-1 text-gray-500">Not verified</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Mizuhiki SBT:</span>
+                        <div className="flex items-center">
+                          {currentUser.isSBTVerified ? (
+                            <>
+                              <img src="/mizuIcons/mizu-success.svg" alt="Verified" className="w-3 h-3" />
+                              <span className="ml-1 text-green-600 font-medium">Verified</span>
+                            </>
+                          ) : (
+                            <>
+                              <img src="/mizuIcons/mizu-sad.svg" alt="Not verified" className="w-3 h-3" />
+                              <span className="ml-1 text-gray-500">Not verified</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Verification Action Buttons - Show only if not verified */}
+                    {!currentUser.isVerified && (
+                      <div className="mt-3 pt-2 border-t border-white/30">
+                        <p className="text-xs text-gray-600 mb-2 text-center">Choose your verification method:</p>
+                        <div className="space-y-2">
+                          {/* ZK Passport Verification Button */}
+                          <button
+                            onClick={() => {
+                              // TODO: Implement ZK Passport verification flow
+                              console.log('ZK Passport verification clicked')
+                            }}
+                            className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
+                            style={{ backgroundColor: 'var(--body1)' }}
+                          >
+                            <img src="/zkpassport-logo.png" alt="ZK Passport" className="w-6 h-4 mr-2 object-contain" />
+                            Verify with ZK Passport (International)
+                          </button>
+
+                          {/* Mizuhiki ID Verification Button */}
+                          <button
+                            onClick={() => {
+                              // TODO: Implement Mizuhiki ID verification flow
+                              console.log('Mizuhiki ID verification clicked')
+                            }}
+                            className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
+                            style={{ backgroundColor: 'var(--primary)' }}
+                          >
+                            <img src="/logo-mizuhiki-id.png" alt="Mizuhiki ID" className="w-4 h-4 mr-2" />
+                            Verify with Mizuhiki ID (Japanese)
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {currentUser.role !== undefined && (
