@@ -1,7 +1,9 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useMizuPassIdentity } from '../hooks/useMizuPassIdentity'
+import { useZKPassportVerification } from '../hooks/useZKPassportVerification'
 import { useEffect, useState } from 'react'
 import { formatEther } from 'viem'
+import QRCode from 'react-qr-code'
 
 interface OnboardingProps {
   onStartExploring: () => void
@@ -17,7 +19,10 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
     }
   })
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
+  const zkPassport = useZKPassportVerification()
   const [showBalance, setShowBalance] = useState(false)
+  const [showZKModal, setShowZKModal] = useState(false)
+  const [showMizuhikiModal, setShowMizuhikiModal] = useState(false)
 
   // Debug balance data
   useEffect(() => {
@@ -191,8 +196,8 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                       {/* ZK Passport Verification Button */}
                       <button
                         onClick={() => {
-                          // TODO: Implement ZK Passport verification flow
-                          console.log('ZK Passport verification clicked')
+                          setShowZKModal(true)
+                          zkPassport.createVerificationRequest()
                         }}
                         className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
                         style={{ backgroundColor: 'var(--body1)' }}
@@ -203,10 +208,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
 
                       {/* Mizuhiki ID Verification Button */}
                       <button
-                        onClick={() => {
-                          // TODO: Implement Mizuhiki ID verification flow
-                          console.log('Mizuhiki ID verification clicked')
-                        }}
+                        onClick={() => setShowMizuhikiModal(true)}
                         className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
                         style={{ backgroundColor: 'var(--primary)' }}
                       >
@@ -343,6 +345,151 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
           </p>
         </div>
       </div>
+
+      {/* ZK Passport Verification Modal */}
+      {showZKModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+            {/* Modal Header with Cute Design */}
+            <div className="bg-green-100 p-6 text-center relative overflow-hidden">
+              {/* Decorative circles */}
+              <div className="absolute top-0 left-0 w-full h-full">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute bg-green-200/30 rounded-full"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      left: `${i * 20}%`,
+                      top: '-20px',
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Header Content */}
+              <div className="relative z-10">
+                <h2 className="text-xl font-bold text-gray-800 mb-2">
+                  Verify Your Account!
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Scan this for ZK Passport !
+                </p>
+
+                {/* Cute Mizu Characters */}
+                <div className="absolute -top-2 -right-4">
+                  <img src="/mizuIcons/mizu-cute.svg" alt="Cute Mizu" className="w-12 h-12" />
+                </div>
+                <div className="absolute -bottom-4 -left-4">
+                  <div className="bg-blue-100 rounded-full p-2">
+                    <img src="/mizuIcons/mizu-success.svg" alt="ZK Mizu" className="w-8 h-8" />
+                  </div>
+                </div>
+
+                {/* Sparkles */}
+                <div className="absolute top-4 left-6">
+                  <div className="text-white text-lg">✨</div>
+                </div>
+                <div className="absolute bottom-8 right-8">
+                  <div className="text-white text-lg">✨</div>
+                </div>
+              </div>
+            </div>
+
+            {/* QR Code Section with Background */}
+            <div className="p-6">
+              <div className="relative">
+                {/* Background Image */}
+                <img
+                  src="/zk-pass-qr.png"
+                  alt="ZK Passport Verification"
+                  className="w-full max-w-md mx-auto object-contain"
+                />
+
+                {/* Overlay QR Code in the white space below ZKPassport logo */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="mt-20 sm:mt-22 md:mt-22">
+                    {zkPassport.queryUrl ? (
+                      <div className="w-20 h-10 sm:w-24 sm:h-24 md:w-28 md:h-28">
+                        <QRCode
+                          value={zkPassport.queryUrl}
+                          size={256}
+                          style={{ height: "90%", maxWidth: "100%", width: "100%" }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 flex items-center justify-center">
+                        <div className="text-gray-600 text-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600 mx-auto mb-2"></div>
+                          <p className="text-xs">Generating...</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              {zkPassport.message && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800 text-center">
+                    {zkPassport.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Verification Results */}
+              {zkPassport.verified && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                  <div className="text-center">
+                    <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-green-800 font-medium">Verification Successful!</p>
+                    {zkPassport.firstName && (
+                      <p className="text-sm text-green-600 mt-1">Welcome, {zkPassport.firstName}!</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <button
+                onClick={() => {
+                  setShowZKModal(false)
+                  zkPassport.resetVerification()
+                }}
+                className="w-full px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors font-medium"
+                style={{ backgroundColor: 'var(--primary)' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mizuhiki ID Verification Modal */}
+      {showMizuhikiModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-4 max-w-lg w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <img
+                src="/mizuhiki-id-qr.png"
+                alt="Mizuhiki ID QR Code"
+                className="w-full max-w-md mx-auto object-contain mb-4"
+              />
+
+              <button
+                onClick={() => setShowMizuhikiModal(false)}
+                className="px-6 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors font-medium"
+                style={{ backgroundColor: 'var(--primary)' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
