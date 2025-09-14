@@ -1,5 +1,7 @@
-import { useAccount } from 'wagmi'
+import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useMizuPassIdentity } from '../hooks/useMizuPassIdentity'
+import { useEffect, useState } from 'react'
+import { formatEther } from 'viem'
 
 interface OnboardingProps {
   onStartExploring: () => void
@@ -7,7 +9,29 @@ interface OnboardingProps {
 
 export function Onboarding({ onStartExploring }: OnboardingProps) {
   const { address } = useAccount()
+  const { disconnect } = useDisconnect()
+  const { data: balance, isError, isLoading } = useBalance({
+    address,
+    query: {
+      enabled: !!address
+    }
+  })
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
+  const [showBalance, setShowBalance] = useState(false)
+
+  // Debug balance data
+  useEffect(() => {
+    if (showBalance) {
+      console.log('Balance Debug:', {
+        address,
+        balance,
+        isLoading,
+        isError,
+        balanceValue: balance?.value?.toString(),
+        balanceSymbol: balance?.symbol
+      })
+    }
+  }, [showBalance, balance, isLoading, isError, address])
   
   return (
     <div className="max-w-4xl mx-auto px-6 w-full">
@@ -15,7 +39,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         
         {/* Welcome & Wallet Card */}
-        <div className="flex-1 rounded-2xl p-4 shadow-lg hover:shadow-xl transition-shadow text-center"
+        <div className="flex-1 rounded-2xl p-4 shadow-lg border-2 border-pink-200 hover:shadow-xl transition-shadow text-center"
              style={{ backgroundColor: 'var(--body3)' }}>
           <div className="mb-3">
             <img 
@@ -32,18 +56,54 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
           </div>
           
           <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 border border-white/30">
-            <div className="flex items-center justify-center mb-2">
-              <img src="/mizuIcons/mizu-key.svg" alt="Wallet" className="w-6 h-6 mr-2" />
-              <span className="text-sm font-medium text-white">Connected Wallet</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <img src="/mizuIcons/mizu-key.svg" alt="Wallet" className="w-6 h-6 mr-2" />
+                <span className="text-sm font-medium text-white">Connected Wallet</span>
+              </div>
+              <button
+                onClick={() => disconnect()}
+                className="text-xs px-2 py-1 bg-red-400/60 hover:bg-red-400/80 text-white rounded-lg transition-colors duration-200"
+                title="Disconnect Wallet"
+              >
+                Logout
+              </button>
             </div>
-            <p className="font-mono text-xs break-all text-pink-100">
+            <p className="font-mono text-xs break-all text-pink-100 mb-2">
               {address}
             </p>
+
+            {/* Balance Section */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setShowBalance(!showBalance)}
+                className="text-xs px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
+              >
+                {showBalance ? 'Hide Balance' : 'Show Balance'}
+              </button>
+              {showBalance && (
+                <div className="text-xs text-pink-100">
+                  {isLoading ? (
+                    <span className="opacity-75">Loading...</span>
+                  ) : isError ? (
+                    <span className="text-pink-200 opacity-75">Error fetching balance</span>
+                  ) : balance && balance.value > 0n ? (
+                    <span className="font-semibold">
+                      {parseFloat(formatEther(balance.value)).toFixed(4)} {balance.symbol}
+                    </span>
+                  ) : balance && balance.value === 0n ? (
+                    <span className="opacity-75">0.0000 {balance.symbol}</span>
+                  ) : (
+                    <span className="opacity-75">No balance data</span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Identity Status Card */}
-        <div className="flex-1 rounded-2xl p-4 shadow-lg hover:shadow-xl transition-shadow" 
+        <div className="flex-1 rounded-2xl p-4 shadow-lg border-2 border-gray-100 hover:shadow-xl transition-shadow" 
              style={{ background: 'var(--secondary)' }}>
           <div className="flex items-center justify-center mb-3">
             <img src="/mizuIcons/mizu-attention.svg" alt="Identity" className="w-10 h-10 mr-2" />
@@ -71,18 +131,91 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
                 </div>
               </div>
               
-              <div className="flex items-center justify-between bg-white/50 rounded-lg p-2">
-                <span className="text-gray-900 font-medium text-sm">Verified</span>
-                <div className="flex items-center">
-                  {currentUser.isVerified ? (
-                    <img src="/mizuIcons/mizu-love.svg" alt="Verified" className="w-5 h-5" />
-                  ) : (
-                    <img src="/mizuIcons/mizu-mendokusai.svg" alt="Pending" className="w-5 h-5" />
-                  )}
-                  <span className={`ml-1 font-bold text-xs ${currentUser.isVerified ? 'text-green-600' : 'text-orange-500'}`}>
-                    {currentUser.isVerified ? 'Verified!' : 'Pending'}
-                  </span>
+              <div className="bg-white/50 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-900 font-medium text-sm">Verified</span>
+                  <div className="flex items-center">
+                    {currentUser.isVerified ? (
+                      <img src="/mizuIcons/mizu-love.svg" alt="Verified" className="w-5 h-5" />
+                    ) : (
+                      <img src="/mizuIcons/mizu-mendokusai.svg" alt="Pending" className="w-5 h-5" />
+                    )}
+                    <span className={`ml-1 font-bold text-xs ${currentUser.isVerified ? 'text-green-600' : 'text-red-500'}`}>
+                      {currentUser.isVerified ? 'TRUE' : 'FALSE'}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Verification Methods Breakdown */}
+                <div className="space-y-1 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">ZK Passport:</span>
+                    <div className="flex items-center">
+                      {currentUser.isZKVerified ? (
+                        <>
+                          <img src="/mizuIcons/mizu-success.svg" alt="Verified" className="w-3 h-3" />
+                          <span className="ml-1 text-green-600 font-medium">Verified</span>
+                        </>
+                      ) : (
+                        <>
+                          <img src="/mizuIcons/mizu-sad.svg" alt="Not verified" className="w-3 h-3" />
+                          <span className="ml-1 text-gray-500">Not verified</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Mizuhiki SBT:</span>
+                    <div className="flex items-center">
+                      {currentUser.isSBTVerified ? (
+                        <>
+                          <img src="/mizuIcons/mizu-success.svg" alt="Verified" className="w-3 h-3" />
+                          <span className="ml-1 text-green-600 font-medium">Verified</span>
+                        </>
+                      ) : (
+                        <>
+                          <img src="/mizuIcons/mizu-sad.svg" alt="Not verified" className="w-3 h-3" />
+                          <span className="ml-1 text-gray-500">Not verified</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verification Action Buttons - Show only if not verified */}
+                {!currentUser.isVerified && (
+                  <div className="mt-3 pt-2 border-t border-white/30">
+                    <p className="text-xs text-gray-600 mb-2 text-center">Choose your verification method:</p>
+                    <div className="space-y-2">
+                      {/* ZK Passport Verification Button */}
+                      <button
+                        onClick={() => {
+                          // TODO: Implement ZK Passport verification flow
+                          console.log('ZK Passport verification clicked')
+                        }}
+                        className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
+                        style={{ backgroundColor: 'var(--body1)' }}
+                      >
+                        <img src="/zkpassport-logo.png" alt="ZK Passport" className="w-6 h-4 mr-2 object-contain" />
+                        Verify with ZK Passport (International)
+                      </button>
+
+                      {/* Mizuhiki ID Verification Button */}
+                      <button
+                        onClick={() => {
+                          // TODO: Implement Mizuhiki ID verification flow
+                          console.log('Mizuhiki ID verification clicked')
+                        }}
+                        className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105"
+                        style={{ backgroundColor: 'var(--primary)' }}
+                      >
+                        <img src="/logo-mizuhiki-id.png" alt="Mizuhiki ID" className="w-4 h-4 mr-2" />
+                        Verify with Mizuhiki ID (Japanese)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {currentUser.role !== undefined && (
@@ -103,7 +236,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
 
       {/* Registration Section */}
       {!currentUser.isRegistered && !currentUser.loading && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg text-center mb-6">
+        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100 text-center mb-6">
           <div className="mb-4">
             <img src="/mizuIcons/mizu-speakloud.svg" alt="Register" className="w-16 h-16 mx-auto mb-3" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Let's Get You Registered! 🚀</h2>
@@ -144,7 +277,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
 
       {/* Success State */}
       {currentUser.isRegistered && (
-        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+        <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-100 text-center mb-6">
           <img src="/mizuIcons/mizu-love.svg" alt="Welcome" className="w-20 h-20 mx-auto mb-3" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">You're All Set! 🎉</h2>
           <p className="text-gray-700 mb-4 text-sm">
@@ -169,7 +302,7 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
             <img src="/mizuIcons/mizu-okey.svg" alt="OK" className="w-8 h-8" />
           </div>
           
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg mx-4">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border-2 border-gray-100 mx-4">
             <h3 className="text-lg font-bold text-gray-900 mb-2">
               Thanks for using MizuPass! 💫
             </h3>

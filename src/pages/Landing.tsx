@@ -1,5 +1,4 @@
-import { ArrowRight, MapPin, Clock, Gamepad2, Gift, Ticket, Globe, Zap, Lock, CheckCircle, Star, Heart, TrendingUp, Eye } from "lucide-react"
-import { MizuConnectButton } from "../components/ConnectButton"
+import { MapPin, Clock, Gamepad2, Gift, Ticket, Globe, Zap, Lock, CheckCircle, Star, Heart, TrendingUp } from "lucide-react"
 
 export default function Landing() {
   return (
@@ -15,7 +14,7 @@ export default function Landing() {
       <main className="relative z-10">
         <div className="max-w-7xl mx-auto px-6 pt-32 pb-16 space-y-8">
           {/* Hero Card Section */}
-          <section className="mb-8">
+          <section id="hero" className="mb-8">
             <div className="rounded-3xl shadow-lg relative overflow-hidden min-h-[400px] flex items-center" 
                  style={{ backgroundColor: 'var(--body1)' }}>
               <div className="relative z-10 w-full py-12 px-8">
@@ -49,7 +48,7 @@ export default function Landing() {
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white text-center leading-tight mb-6">
                   Privacy-First{" "}
-                  <span className="bg-gradient-to-r from-yellow-300 to-pink-300 bg-clip-text text-transparent">
+                  <span className="font-bold px-2 py-1 rounded-lg text-white bg-white/20 backdrop-blur-sm">
                     Universal Ticketing
                   </span>
                   {" "}Platform
@@ -60,15 +59,6 @@ export default function Landing() {
                   <span className="font-bold px-2 py-1 rounded-lg text-white bg-white/20 backdrop-blur-sm">JETH-to-MJPY</span> payments via Uniswap v3 integration
                 </p>
 
-                {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <MizuConnectButton />
-                  <button className="flex items-center px-8 py-4 text-lg font-medium text-white rounded-xl hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-white/30 bg-white/20 backdrop-blur-sm">
-                    <img src="/mizuIcons/mizu-speakloud.svg" alt="Demo" className="w-5 h-5 mr-2" />
-                    View Demo
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </button>
-                </div>
               </div>
             </div>
           </section>
@@ -258,7 +248,7 @@ export default function Landing() {
           </section>
 
           {/* Core Innovations Card */}
-          <section className="mb-8">
+          <section id="innovations" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -346,7 +336,7 @@ export default function Landing() {
           </section>
 
           {/* Technical Performance Card */}
-          <section className="mb-8">
+          <section id="performance" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -383,7 +373,7 @@ export default function Landing() {
           </section>
 
           {/* Competitive Advantages Card */}
-          <section className="mb-8">
+          <section id="advantages" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -467,7 +457,7 @@ export default function Landing() {
           </section>
 
           {/* Target Markets Card */}
-          <section className="mb-8">
+          <section id="markets" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -545,14 +535,6 @@ export default function Landing() {
                 <p className="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
                   Join the privacy-first, compliant ticketing platform that's making decentralized event access a reality
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <MizuConnectButton />
-                  <button className="flex items-center px-8 py-4 text-lg font-medium text-white bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl hover:bg-white/30 transition-all duration-200 shadow-lg hover:shadow-xl">
-                    <Eye className="w-5 h-5 mr-2" />
-                    View Documentation
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </button>
-                </div>
               </div>
             </div>
           </section>
