@@ -12,10 +12,36 @@ export interface ClaimENSResponse {
   transactionHash?: string
 }
 
+export interface CheckENSResponse {
+  success: boolean
+  subdomain: string
+  exists: boolean
+  resolvedAddress?: string
+  isVerified: boolean
+}
+
 export const useENSSubdomain = () => {
   const [isClaimingENS, setIsClaimingENS] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
   const [claimSuccess, setClaimSuccess] = useState<ClaimENSResponse | null>(null)
+  const [isCheckingENS, setIsCheckingENS] = useState(false)
+  const [ensStatus, setEnsStatus] = useState<CheckENSResponse | null>(null)
+
+  // Initialize from localStorage
+  const [claimedDomain, setClaimedDomain] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('mizupass_ens_domain')
+    }
+    return null
+  })
+
+  const [hasClaimedENS, setHasClaimedENS] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('mizupass_ens_claimed') === 'true'
+    }
+    return false
+  })
+
 
   const claimSubdomain = async (subdomain: string, address: string): Promise<ClaimENSResponse | null> => {
     setIsClaimingENS(true)
@@ -54,12 +80,31 @@ export const useENSSubdomain = () => {
         throw new Error('Server returned invalid response format')
       }
 
-      const data: ClaimENSResponse = await response.json()
-      console.log('ENS API response data:', data)
+      const data: any = await response.json()
 
-      console.log('ENS subdomain claim successful:', data)
-      setClaimSuccess(data)
-      return data
+      // The API returns {success: true, ens: {ens: "domain.mizupass.eth", ...}} format
+      const domain = data.ens?.ens || data.domain
+
+      // Store ENS name in localStorage and update state
+      if (data.success && domain) {
+        localStorage.setItem('mizupass_ens_domain', domain)
+        localStorage.setItem('mizupass_ens_claimed', 'true')
+        setClaimedDomain(domain)
+        setHasClaimedENS(true)
+
+        // Update the claimSuccess to match our expected format
+        const formattedResponse = {
+          success: data.success,
+          domain: domain,
+          message: data.message,
+          transactionHash: data.ens?.transactions?.setSubnodeRecord?.hash || data.transactionHash
+        }
+        setClaimSuccess(formattedResponse)
+        return formattedResponse
+      } else {
+        setClaimSuccess(data)
+        return data
+      }
     } catch (error) {
       let errorMessage = 'Failed to claim ENS subdomain'
 
@@ -86,20 +131,71 @@ export const useENSSubdomain = () => {
     }
   }
 
+  const checkENSSubdomain = async (subdomainName: string): Promise<CheckENSResponse | null> => {
+    setIsCheckingENS(true)
+
+    try {
+      const response = await fetch(`https://services.mizupass.com/api/ens/checkSubdomain/${subdomainName}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': 'pqwjyftfxavlqiixowhbaasinmppfnfl'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: CheckENSResponse = await response.json()
+      setEnsStatus(data)
+      return data
+    } catch (error) {
+      console.error('ENS check failed:', error)
+      return null
+    } finally {
+      setIsCheckingENS(false)
+    }
+  }
+
   const resetClaim = () => {
     setClaimError(null)
     setClaimSuccess(null)
     setIsClaimingENS(false)
   }
 
+  const resetENSStatus = () => {
+    setEnsStatus(null)
+  }
+
+  const clearENSClaim = () => {
+    localStorage.removeItem('mizupass_ens_domain')
+    localStorage.removeItem('mizupass_ens_claimed')
+    setClaimedDomain(null)
+    setHasClaimedENS(false)
+    setClaimSuccess(null)
+    setClaimError(null)
+  }
+
   return {
-    // State
+    // Claiming State
     isClaimingENS,
     claimError,
     claimSuccess,
 
+    // Checking State
+    isCheckingENS,
+    ensStatus,
+
+    // localStorage State
+    hasClaimedENS,
+    claimedDomain,
+
     // Actions
     claimSubdomain,
+    checkENSSubdomain,
     resetClaim,
+    resetENSStatus,
+    clearENSClaim,
   }
 }

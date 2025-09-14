@@ -44,12 +44,49 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
     }
   }, [showBalance, balance, isLoading, isError, address])
 
-  // Show ENS success modal when claiming succeeds
+  // Show ENS success modal when claiming succeeds (briefly, then hide)
   useEffect(() => {
-    if (ensSubdomain.claimSuccess) {
+    if (ensSubdomain.claimSuccess && !ensSubdomain.hasClaimedENS) {
       setShowENSSuccessModal(true)
+
+      // Auto-hide the modal after 3 seconds to show the seamless update
+      const timer = setTimeout(() => {
+        setShowENSSuccessModal(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
     }
-  }, [ensSubdomain.claimSuccess])
+  }, [ensSubdomain.claimSuccess, ensSubdomain.hasClaimedENS])
+
+  // Check if user has claimed ENS when they become verified
+  useEffect(() => {
+    const checkStoredENSStatus = async () => {
+      if (currentUser.isVerified && ensSubdomain.claimedDomain && !ensSubdomain.isCheckingENS) {
+        // If user has a stored claimed domain, verify it's still valid
+        const subdomainName = ensSubdomain.claimedDomain.replace('.mizupass.eth', '')
+        console.log(`Verifying stored ENS domain: ${subdomainName}`)
+
+        try {
+          const result = await ensSubdomain.checkENSSubdomain(subdomainName)
+          if (result && result.exists && result.resolvedAddress?.toLowerCase() === address?.toLowerCase()) {
+            console.log('Stored ENS domain is valid and belongs to current address')
+          } else {
+            console.log('Stored ENS domain mismatch or no longer exists')
+            // Clear invalid stored data
+            localStorage.removeItem('mizupass_ens_domain')
+            localStorage.removeItem('mizupass_ens_claimed')
+          }
+        } catch (error) {
+          console.error('Failed to verify stored ENS domain:', error)
+        }
+      }
+    }
+
+    // Only run if user is verified and has a stored claimed domain
+    if (currentUser.isVerified && !currentUser.loading && ensSubdomain.claimedDomain) {
+      checkStoredENSStatus()
+    }
+  }, [currentUser.isVerified, currentUser.loading, address, ensSubdomain.claimedDomain])
   
   return (
     <div className="max-w-4xl mx-auto px-6 w-full">
@@ -237,10 +274,75 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
                   <div className="mt-3 pt-2 border-t border-white/30">
                     <div className="flex items-center justify-center mb-2">
                       <img src="/mizuIcons/mizu-love.svg" alt="ENS" className="w-4 h-4 mr-1" />
-                      <p className="text-xs sm:text-sm font-medium text-gray-700">Claim Your Free ENS Subdomain!</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-700">
+                        {ensSubdomain.hasClaimedENS ? 'Your ENS Domain' : 'Claim Your Free ENS Subdomain!'}
+                      </p>
                     </div>
 
-                    {!ensSubdomain.claimSuccess ? (
+
+
+                    {ensSubdomain.hasClaimedENS || ensSubdomain.claimSuccess ? (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-green-100/50 border border-green-200/50 rounded-lg text-center">
+                          <div className="flex items-center justify-center mb-2">
+                            <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-5 h-5 mr-1" />
+                            <span className="text-sm font-bold text-green-700">
+                              {ensSubdomain.claimSuccess && !ensSubdomain.hasClaimedENS ? 'Successfully Claimed!' : 'ENS Domain Owned!'}
+                            </span>
+                          </div>
+                          <div className="mb-2">
+                            <a
+                              href={`https://sepolia.app.ens.domains/${ensSubdomain.claimedDomain || ensSubdomain.claimSuccess?.domain || `${ensSubdomainInput}.mizupass.eth`}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block px-3 py-1 bg-white/80 rounded-full border border-green-200 hover:bg-white hover:border-green-300 transition-all duration-200 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src="https://app.ens.domains/favicon.ico"
+                                  alt="ENS"
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-xs font-bold text-green-800">
+                                  {ensSubdomain.claimedDomain || ensSubdomain.claimSuccess?.domain || `${ensSubdomainInput}.mizupass.eth`}
+                                </span>
+                                <svg
+                                  className="w-3 h-3 text-green-600"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                  />
+                                </svg>
+                              </div>
+                            </a>
+                          </div>
+                          <p className="text-xs text-green-600">
+                            🎉 {ensSubdomain.claimSuccess && !ensSubdomain.hasClaimedENS ?
+                                'Congratulations! Your decentralized identity is ready!' :
+                                'You already have your decentralized identity!'}
+                          </p>
+                          {ensSubdomain.claimSuccess?.transactionHash && (
+                            <div className="mt-2">
+                              <a
+                                href={`https://etherscan.io/tx/${ensSubdomain.claimSuccess.transactionHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium text-blue-600 hover:underline flex items-center justify-center gap-1"
+                              >
+                                <img src="/mizuIcons/mizu-success.svg" alt="TX" className="w-3 h-3" />
+                                View Transaction
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
                       <div className="space-y-2">
                         <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 overflow-hidden rounded-lg border border-white/40">
                           <input
@@ -257,16 +359,30 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
                         </div>
 
                         <button
-                          onClick={() => {
-                            if (ensSubdomainInput.trim() && address) {
-                              ensSubdomain.claimSubdomain(ensSubdomainInput, address)
+                          onClick={async () => {
+                            if (ensSubdomainInput.trim() && address && !ensSubdomain.hasClaimedENS) {
+                              // First check if subdomain already exists
+                              const checkResult = await ensSubdomain.checkENSSubdomain(ensSubdomainInput)
+
+                              if (checkResult && checkResult.exists) {
+                                // Show error that subdomain is taken
+                                return
+                              }
+
+                              // Proceed with claiming
+                              await ensSubdomain.claimSubdomain(ensSubdomainInput, address)
                             }
                           }}
-                          disabled={!ensSubdomainInput.trim() || ensSubdomain.isClaimingENS}
+                          disabled={!ensSubdomainInput.trim() || ensSubdomain.isClaimingENS || ensSubdomain.isCheckingENS || ensSubdomain.hasClaimedENS}
                           className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{ backgroundColor: 'var(--primary)' }}
                         >
-                          {ensSubdomain.isClaimingENS ? (
+                          {ensSubdomain.isCheckingENS ? (
+                            <>
+                              <Spinner size="sm" className="mr-2 text-white" />
+                              Checking availability...
+                            </>
+                          ) : ensSubdomain.isClaimingENS ? (
                             <>
                               <Spinner size="sm" className="mr-2 text-white" />
                               Claiming ENS...
@@ -285,35 +401,6 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
                             {ensSubdomain.claimError}
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="p-3 bg-green-100/50 border border-green-200/50 rounded-lg text-center">
-                          <div className="flex items-center justify-center mb-2">
-                            <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-5 h-5 mr-1" />
-                            <span className="text-sm font-bold text-green-700">ENS Claimed Successfully!</span>
-                          </div>
-                          <div className="mb-2">
-                            <div className="inline-block px-3 py-1 bg-white/80 rounded-full border border-green-200">
-                              <span className="text-xs font-bold text-green-800">
-                                {ensSubdomain.claimSuccess.domain || `${ensSubdomainInput}.mizupass.eth`}
-                              </span>
-                            </div>
-                          </div>
-                          {ensSubdomain.claimSuccess.transactionHash && (
-                            <div className="text-center">
-                              <a
-                                href={`https://etherscan.io/tx/${ensSubdomain.claimSuccess.transactionHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs font-medium text-blue-600 hover:underline flex items-center justify-center gap-1"
-                              >
-                                <img src="/mizuIcons/mizu-success.svg" alt="TX" className="w-3 h-3" />
-                                View Transaction
-                              </a>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     )}
                   </div>
