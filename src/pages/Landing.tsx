@@ -20,14 +20,22 @@ export default function Landing() {
               <span className="text-blue-700 font-medium">$5,000 Prize Pool</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-8 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900  leading-tight">
               Privacy-First{" "}
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#9BE2F3] to-[#53C3F1] bg-clip-text text-transparent">
                 Universal Ticketing
               </span>
               {" "}Platform
             </h1>
 
+            {/* Architecture Preview */}
+            <div className="max-w-7xl mx-auto rounded-3xl p-8 ">
+              <img
+                src="/mizuPass.svg"
+                alt="MizuPass Architecture"
+                className="w-full h-auto max-h-96 object-contain opacity-90"
+              />
+            </div>
             <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto mb-12 leading-relaxed">
               The world's first compliant, privacy-preserving ticketing platform with seamless{" "}
               <span className="font-semibold text-blue-600">JETH-to-MJPY</span> payments via Uniswap v3 integration
@@ -63,14 +71,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Architecture Preview */}
-            <div className="max-w-5xl mx-auto bg-white/70 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-white/20">
-              <img
-                src="/mizuPass.svg"
-                alt="MizuPass Architecture"
-                className="w-full h-auto max-h-96 object-contain opacity-90"
-              />
-            </div>
+            
           </section>
 
           {/* Live Events & Ticketing */}
