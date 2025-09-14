@@ -1,6 +1,7 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useMizuPassIdentity } from '../hooks/useMizuPassIdentity'
 import { useZKPassportVerification } from '../hooks/useZKPassportVerification'
+import { useJPYMAirdrop } from '../hooks/useJPYMAirdrop'
 import { useEffect, useState } from 'react'
 import { formatEther } from 'viem'
 import QRCode from 'react-qr-code'
@@ -24,10 +25,12 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
   const zkPassport = useZKPassportVerification()
   const ensSubdomain = useENSSubdomain()
+  const jpymAirdrop = useJPYMAirdrop()
   const [showBalance, setShowBalance] = useState(false)
   const [showZKModal, setShowZKModal] = useState(false)
   const [showMizuhikiModal, setShowMizuhikiModal] = useState(false)
   const [showENSSuccessModal, setShowENSSuccessModal] = useState(false)
+  const [showJPYMSuccessModal, setShowJPYMSuccessModal] = useState(false)
   const [ensSubdomainInput, setEnsSubdomainInput] = useState('')
 
   // Debug balance data
@@ -57,6 +60,20 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
       return () => clearTimeout(timer)
     }
   }, [ensSubdomain.claimSuccess, ensSubdomain.hasClaimedENS])
+
+  // Show JPYM success modal when airdrop is confirmed
+  useEffect(() => {
+    if (jpymAirdrop.isConfirmed) {
+      setShowJPYMSuccessModal(true)
+
+      // Auto-hide the modal after 3 seconds
+      const timer = setTimeout(() => {
+        setShowJPYMSuccessModal(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [jpymAirdrop.isConfirmed])
 
   // Check if user has claimed ENS when they become verified
   useEffect(() => {
@@ -152,6 +169,53 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
                     <span className="opacity-75">No balance data</span>
                   )}
                 </div>
+              )}
+            </div>
+
+            {/* JPYM Airdrop Section */}
+            <div className="mt-3 pt-3 border-t border-white/30">
+              <div className="flex items-center justify-center mb-2">
+                <img src="/mizuIcons/mizu-love.svg" alt="JPYM" className="w-4 h-4 mr-1" />
+                <p className="text-xs font-medium text-white">
+                  {jpymAirdrop.hasClaimedAirdrop ? 'JPYM Tokens' : 'Get Free JPYM Tokens!'}
+                </p>
+              </div>
+
+              {jpymAirdrop.isLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <Spinner size="sm" className="mr-2 text-white" />
+                  <span className="text-xs text-pink-100">Loading...</span>
+                </div>
+              ) : jpymAirdrop.hasClaimedAirdrop ? (
+                <div className="flex items-center justify-center py-2">
+                  <img src="/mizuIcons/mizu-success.svg" alt="Success" className="w-4 h-4 mr-2" />
+                  <span className="text-xs text-green-300 font-medium">Airdrop Claimed! 🎉</span>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      await jpymAirdrop.claimAirdrop()
+                    } catch (error) {
+                      console.error('JPYM airdrop failed:', error)
+                    }
+                  }}
+                  disabled={!jpymAirdrop.canClaim}
+                  className="w-full flex items-center justify-center px-3 py-2 text-white font-bold rounded-lg transition-all duration-200 text-xs hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--body3)' }}
+                >
+                  {jpymAirdrop.isPending || jpymAirdrop.isConfirming ? (
+                    <>
+                      <Spinner size="sm" className="mr-2 text-white" />
+                      {jpymAirdrop.isPending ? 'Confirm...' : 'Confirming...'}
+                    </>
+                  ) : (
+                    <>
+                      <img src="/mizuIcons/mizu-love.svg" alt="JPYM" className="w-4 h-4 mr-2" />
+                      Mint JPYM! 💰
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>
@@ -763,6 +827,48 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
                 style={{ backgroundColor: 'var(--primary)' }}
               >
                 Awesome!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JPYM Success Modal */}
+      {showJPYMSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="mb-4">
+                <img src="/mizuIcons/mizu-love.svg" alt="Success" className="w-20 h-20 mx-auto mb-3 animate-bounce" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">JPYM Airdrop Success! 🎉</h3>
+                <p className="text-gray-700 text-sm mb-4">
+                  Congratulations! You've successfully claimed your free JPYM tokens. 
+                  You can now use them to participate in events and activities on MizuPass!
+                </p>
+              </div>
+
+              {/* Transaction Hash Link */}
+              {jpymAirdrop.hash && (
+                <div className="mb-4">
+                  <a
+                    href={`https://etherscan.io/tx/${jpymAirdrop.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-sm font-medium text-blue-700"
+                  >
+                    <img src="/mizuIcons/mizu-success.svg" alt="TX" className="w-4 h-4" />
+                    View Transaction
+                  </a>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowJPYMSuccessModal(false)}
+                className="w-full px-6 py-3 text-white rounded-lg transition-colors font-medium hover:opacity-90"
+                style={{ backgroundColor: 'var(--body3)' }}
+              >
+                Awesome! 💰
               </button>
             </div>
           </div>
