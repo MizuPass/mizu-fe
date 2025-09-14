@@ -14,7 +14,7 @@ export default function Landing() {
       <main className="relative z-10">
         <div className="max-w-7xl mx-auto px-6 pt-32 pb-16 space-y-8">
           {/* Hero Card Section */}
-          <section className="mb-8">
+          <section id="hero" className="mb-8">
             <div className="rounded-3xl shadow-lg relative overflow-hidden min-h-[400px] flex items-center" 
                  style={{ backgroundColor: 'var(--body1)' }}>
               <div className="relative z-10 w-full py-12 px-8">
@@ -248,7 +248,7 @@ export default function Landing() {
           </section>
 
           {/* Core Innovations Card */}
-          <section className="mb-8">
+          <section id="innovations" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -336,7 +336,7 @@ export default function Landing() {
           </section>
 
           {/* Technical Performance Card */}
-          <section className="mb-8">
+          <section id="performance" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -373,7 +373,7 @@ export default function Landing() {
           </section>
 
           {/* Competitive Advantages Card */}
-          <section className="mb-8">
+          <section id="advantages" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
@@ -457,7 +457,7 @@ export default function Landing() {
           </section>
 
           {/* Target Markets Card */}
-          <section className="mb-8">
+          <section id="markets" className="mb-8">
             <div className="rounded-3xl p-8 shadow-lg " style={{ backgroundColor: 'var(--body4)' }}>
               <div className="text-center mb-8">
                 <div className="flex justify-center items-center gap-4 mb-6">
