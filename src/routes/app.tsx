@@ -1,18 +1,25 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAccount } from 'wagmi'
 import { useMizuPassIdentity } from '../hooks/useMizuPassIdentity'
+import { useEffect } from 'react'
 
 function AppPage() {
   const { address, isConnected } = useAccount()
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
+  const navigate = useNavigate()
   
-  // Debug logging
-  console.log('MizuPass Debug:', {
-    address,
-    currentUser,
-    isVerified: currentUser.isVerified,
-    loading: currentUser.loading
-  })
+  // Redirect to landing page if user is not connected
+  useEffect(() => {
+    if (!isConnected) {
+      navigate({ to: '/' })
+    }
+  }, [isConnected, navigate])
+  
+  
+  // Don't render content if user is not connected
+  if (!isConnected) {
+    return null
+  }
   
   return (
     <div className="min-h-screen w-full">
