@@ -101,18 +101,15 @@ export const useJPYMAirdrop = () => {
     }
   }
 
-  // Use local state if available, otherwise fall back to blockchain data
   const finalClaimedStatus = localClaimedStatus !== null ? localClaimedStatus : (hasClaimedAirdrop || false)
 
   return {
-    // State
     hasClaimedAirdrop: finalClaimedStatus,
     balance: balance || 0n,
     isLoadingClaimStatus,
     isLoadingBalance,
     claimStatusError,
     
-    // Transaction state
     isPending,
     isConfirming,
     isConfirmed,

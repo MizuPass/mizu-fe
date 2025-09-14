@@ -310,6 +310,11 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
                   
                   {/* View Details Button */}
                   <button 
+                    onClick={(e) => {
+                      e.stopPropagation() // Prevent triggering the parent div's onClick
+                      console.log('View Details clicked for event:', event.id, event.title)
+                      onEventClick(event) // Call the event click handler directly
+                    }}
                     className={`w-full font-bold py-2 rounded-lg transition-all duration-200 text-sm ${
                       event.status === 'sold-out'
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -329,29 +334,6 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
                 </div>
               </div>
             ))}
-              {/* Action Button */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation() // Prevent triggering the parent div's onClick
-                  console.log('View Details clicked for event:', event.id, event.title)
-                  onEventClick(event) // Call the event click handler directly
-                }}
-                className={`w-full font-bold py-2 rounded-lg transition-all duration-200 text-sm ${
-                  event.status === 'sold-out'
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'text-white hover:scale-105 shadow-lg'
-                }`}
-                style={{
-                  backgroundColor: event.status === 'sold-out' ? undefined : 'var(--primary)'
-                }}
-                disabled={event.status === 'sold-out'}
-              >
-                {event.status === 'sold-out' ? 'Sold Out' : 
-                 event.status === 'upcoming' ? 'Get Notified' : 
-                 'View Details'}
-              </button>
-            </div>
-          ))}
 
             {/* Add More Events Placeholder */}
             <div className="flex-shrink-0 w-72 bg-white/80 backdrop-blur-sm rounded-2xl p-4 h-full shadow-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center">
