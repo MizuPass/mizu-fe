@@ -39,9 +39,11 @@ export const MizuConnectButton = () => {
                   <button
                     onClick={openConnectModal}
                     type="button"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    className="flex items-center px-8 py-4 text-lg font-bold text-white rounded-xl hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl gap-3"
+                    style={{ backgroundColor: 'var(--primary)' }}
                   >
-                    🔗 Connect Wallet
+                    <img src="/mizuIcons/mizu-key.svg" alt="Connect" className="w-5 h-5" />
+                    Connect Wallet
                   </button>
                 );
               }
@@ -51,9 +53,10 @@ export const MizuConnectButton = () => {
                   <button
                     onClick={openChainModal}
                     type="button"
-                    className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                    className="flex items-center px-8 py-4 text-lg font-bold text-white rounded-xl hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl gap-3 bg-red-400/80 hover:bg-red-400"
                   >
-                    ⚠️ Wrong network
+                    <img src="/mizuIcons/mizu-attention.svg" alt="Warning" className="w-5 h-5" />
+                    Wrong Network
                   </button>
                 );
               }
@@ -62,12 +65,16 @@ export const MizuConnectButton = () => {
                 <button
                   onClick={openAccountModal}
                   type="button"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                  className="flex items-center px-8 py-4 text-lg font-bold text-white rounded-xl hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl gap-3"
+                  style={{ backgroundColor: 'var(--primary)' }}
                 >
-                  {account.displayName}
-                  {account.displayBalance
-                    ? ` (${account.displayBalance})`
-                    : ''}
+                  <img src="/mizuIcons/mizu-success.svg" alt="Connected" className="w-5 h-5" />
+                  <span>
+                    {account.displayName}
+                    {account.displayBalance
+                      ? ` (${account.displayBalance})`
+                      : ''}
+                  </span>
                 </button>
               );
             })()}

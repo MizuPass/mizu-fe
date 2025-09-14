@@ -1,13 +1,36 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useAccount } from 'wagmi'
+import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useMizuPassIdentity } from '../hooks/useMizuPassIdentity'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { formatEther } from 'viem'
 
 function AppPage() {
   const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
+  const { data: balance, isError, isLoading } = useBalance({
+    address,
+    query: {
+      enabled: !!address
+    }
+  })
   const { currentUser, registerUserRole, UserRole } = useMizuPassIdentity()
   const navigate = useNavigate()
-  
+  const [showBalance, setShowBalance] = useState(false)
+
+  // Debug balance data
+  useEffect(() => {
+    if (showBalance) {
+      console.log('Balance Debug:', {
+        address,
+        balance,
+        isLoading,
+        isError,
+        balanceValue: balance?.value?.toString(),
+        balanceSymbol: balance?.symbol
+      })
+    }
+  }, [showBalance, balance, isLoading, isError, address])
+
   // Redirect to landing page if user is not connected
   useEffect(() => {
     if (!isConnected) {
@@ -95,13 +118,49 @@ function AppPage() {
               </div>
               
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 border border-white/30">
-                <div className="flex items-center justify-center mb-2">
-                  <img src="/mizuIcons/mizu-key.svg" alt="Wallet" className="w-6 h-6 mr-2" />
-                  <span className="text-sm font-medium text-white">Connected Wallet</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <img src="/mizuIcons/mizu-key.svg" alt="Wallet" className="w-6 h-6 mr-2" />
+                    <span className="text-sm font-medium text-white">Connected Wallet</span>
+                  </div>
+                  <button
+                    onClick={() => disconnect()}
+                    className="text-xs px-2 py-1 bg-red-400/60 hover:bg-red-400/80 text-white rounded-lg transition-colors duration-200"
+                    title="Disconnect Wallet"
+                  >
+                    Logout
+                  </button>
                 </div>
-                <p className="font-mono text-xs break-all text-pink-100">
+                <p className="font-mono text-xs break-all text-pink-100 mb-2">
                   {address}
                 </p>
+
+                {/* Balance Section */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowBalance(!showBalance)}
+                    className="text-xs px-2 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors duration-200"
+                  >
+                    {showBalance ? 'Hide Balance' : 'Show Balance'}
+                  </button>
+                  {showBalance && (
+                    <div className="text-xs text-pink-100">
+                      {isLoading ? (
+                        <span className="opacity-75">Loading...</span>
+                      ) : isError ? (
+                        <span className="text-pink-200 opacity-75">Error fetching balance</span>
+                      ) : balance && balance.value > 0n ? (
+                        <span className="font-semibold">
+                          {parseFloat(formatEther(balance.value)).toFixed(4)} {balance.symbol}
+                        </span>
+                      ) : balance && balance.value === 0n ? (
+                        <span className="opacity-75">0.0000 {balance.symbol}</span>
+                      ) : (
+                        <span className="opacity-75">No balance data</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
