@@ -434,7 +434,10 @@ export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProp
           
           <div className="flex flex-col md:flex-row gap-4">
             <button 
-              onClick={() => registerUserRole(UserRole.REGULAR_USER)}
+              onClick={() => {
+                console.log('Registering as REGULAR_USER with role value:', UserRole.REGULAR_USER)
+                registerUserRole(UserRole.REGULAR_USER)
+              }}
               className="flex-1 group relative overflow-hidden rounded-xl p-4 text-white font-bold text-base transition-all duration-300 hover:scale-105 hover:shadow-xl"
               style={{ backgroundColor: 'var(--primary)' }}
             >

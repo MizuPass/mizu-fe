@@ -1,7 +1,7 @@
 import type { Address } from 'viem'
 
 // MizuPassIdentity Contract Configuration
-export const MIZUPASS_IDENTITY_ADDRESS: Address = '0x370C6f14d8AF4e7e014Dc308DDFCE4322101Cffe'
+export const MIZUPASS_IDENTITY_ADDRESS: Address = '0x9fB07660c625E3819162Ba0a64334C4D7e139E15'
 
 export const MIZUPASS_IDENTITY_ABI = [
   {
@@ -381,7 +381,7 @@ export const UserRole = {
 export type UserRoleType = typeof UserRole[keyof typeof UserRole]
 
 // Mock JPYM Token Contract Configuration  
-export const JPYM_TOKEN_ADDRESS: Address = '0xB362A6b349940f1086FC4834fE1EdE42544A1758'
+export const JPYM_TOKEN_ADDRESS: Address = '0x5607DD40f7DFF4f88f504338D92354F7cFdFD178'
 
 // Legacy export for backward compatibility
 export const MJPY_TOKEN_ADDRESS: Address = JPYM_TOKEN_ADDRESS
@@ -460,7 +460,7 @@ export const ERC20_ABI = [
 export const JPYM_ABI = ERC20_ABI // Using standard ERC20 ABI for mock token
 
 // Mizu Event Registry Contract Configuration
-export const MIZU_EVENT_REGISTRY_ADDRESS: Address = '0x5004a7708FD24D67e72EC9b876f2F44aefe4D6f9'
+export const MIZU_EVENT_REGISTRY_ADDRESS: Address = '0xe4cdc2b610CF13584b884383bfEA3237009CA501'
 
 export const MIZU_EVENT_REGISTRY_ABI = [
     {

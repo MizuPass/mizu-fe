@@ -153,11 +153,15 @@ export const useMizuPassIdentity = () => {
 
   // Write contract functions
   const registerUserRole = async (role: UserRoleType) => {
+    // Ensure role is properly cast to uint8 for the smart contract
+    const roleValue = Number(role) as 1 | 2
+    console.log('Registering user with role:', { role, roleValue, isRegularUser: roleValue === UserRole.REGULAR_USER })
+    
     return writeContract({
       address: MIZUPASS_IDENTITY_ADDRESS,
       abi: MIZUPASS_IDENTITY_ABI,
       functionName: 'registerUserRole',
-      args: [role]
+      args: [roleValue]
     })
   }
 
