@@ -5,9 +5,10 @@ import { formatEther } from 'viem'
 
 interface OnboardingProps {
   onStartExploring: () => void
+  onGoToDashboard: () => void
 }
 
-export function Onboarding({ onStartExploring }: OnboardingProps) {
+export function Onboarding({ onStartExploring, onGoToDashboard }: OnboardingProps) {
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
   const { data: balance, isError, isLoading } = useBalance({
@@ -283,13 +284,26 @@ export function Onboarding({ onStartExploring }: OnboardingProps) {
           <p className="text-gray-700 mb-4 text-sm">
             Welcome to the MizuPass family! You can now enjoy privacy-first ticketing.
           </p>
-          <button 
-            onClick={onStartExploring}
-            className="px-6 py-3 rounded-xl text-white font-bold text-base transition-all duration-300 hover:scale-105"
-            style={{ backgroundColor: 'var(--primary)' }}
-          >
-            Start Exploring Events! 🎫
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onClick={onStartExploring}
+              className="px-6 py-3 rounded-xl text-white font-bold text-base transition-all duration-300 hover:scale-105"
+              style={{ backgroundColor: 'var(--primary)' }}
+            >
+              Start Exploring Events! 🎫
+            </button>
+            
+            {/* Dashboard Button - Only for Event Creators */}
+            {currentUser.role === UserRole.EVENT_CREATOR && (
+              <button 
+                onClick={onGoToDashboard}
+                className="px-6 py-3 rounded-xl text-white font-bold text-base transition-all duration-300 hover:scale-105"
+                style={{ backgroundColor: 'var(--body1)' }}
+              >
+                Manage your event! 🎪
+              </button>
+            )}
+          </div>
         </div>
       )}
 

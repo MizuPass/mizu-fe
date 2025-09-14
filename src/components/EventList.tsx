@@ -70,8 +70,8 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
 
   return (
     <div className="max-w-6xl mx-auto px-6 w-full h-full flex flex-col justify-center">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-shrink-0">
+      {/* Header - Desktop */}
+      <div className="hidden lg:flex items-center justify-between mb-6 flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={onBackToOnboarding}
@@ -92,6 +92,34 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
           <img src="/mizuIcons/mizu-success.svg" alt="Live" className="w-4 h-4 animate-pulse" />
           <span className="text-sm font-medium text-gray-700">{mockEvents.length} Events Live</span>
+        </div>
+      </div>
+
+      {/* Header - Mobile */}
+      <div className="lg:hidden mb-6 flex-shrink-0 space-y-4">
+        {/* Top Row - Back Button */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onBackToOnboarding}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/80 backdrop-blur-sm hover:bg-white/90 transition-all duration-200 shadow-lg"
+          >
+            <img src="/mizuIcons/mizu-attention.svg" alt="Back" className="w-4 h-4" />
+            <span className="text-sm font-medium text-gray-700">Back</span>
+          </button>
+          
+          <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-2 py-1 shadow-lg">
+            <img src="/mizuIcons/mizu-success.svg" alt="Live" className="w-3 h-3 animate-pulse" />
+            <span className="text-xs font-medium text-gray-700">{mockEvents.length} Live</span>
+          </div>
+        </div>
+        
+        {/* Bottom Row - Title */}
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-gray-900 flex items-center justify-center gap-2 mb-1">
+            <img src="/mizuIcons/mizu-www.svg" alt="Events" className="w-6 h-6" />
+            Available Events
+          </h1>
+          <p className="text-gray-600 text-xs">Discover amazing events with privacy-first ticketing</p>
         </div>
       </div>
 
