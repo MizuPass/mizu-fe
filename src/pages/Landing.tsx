@@ -23,9 +23,8 @@ export default function Landing() {
                   <div className="inline-flex items-center rounded-full px-6 py-3 shadow-lg animate-bounce backdrop-blur-sm" 
                        style={{ backgroundColor: 'var(--body3)' }}>
                     <img src="/mizuIcons/mizu-success.svg" alt="Winner" className="w-6 h-6 mr-2" />
-                    <span className="text-white font-bold">ETH Tokyo 2025 Winner</span>
+                    <span className="text-white font-bold">ETH Tokyo 2025</span>
                     <span className="mx-2 text-pink-100">•</span>
-                    <span className="text-pink-100 font-medium">$5,000 Prize Pool</span>
                   </div>
                 </div>
 
