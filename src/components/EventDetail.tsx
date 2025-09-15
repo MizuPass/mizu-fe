@@ -16,7 +16,7 @@ interface EventDetailProps {
 
 export function EventDetail({ event, onBack }: EventDetailProps) {
   const [showPurchaseFlow, setShowPurchaseFlow] = useState(false)
-  const [hasPurchased, setHasPurchased] = useState(false)
+  const [hasPurchased] = useState(false)
 
   // Handle join event button click - opens purchase flow or shows error
   const handleJoinEvent = () => {

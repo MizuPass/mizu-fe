@@ -7,6 +7,7 @@ export type PurchaseStep =
   | 'approving_mjpy'
   | 'purchasing'
   | 'waiting_for_funds'
+  | 'setting_up_stealth'
   | 'completing_payment'
   | 'success'
   | 'error'
@@ -94,6 +95,7 @@ export const PURCHASE_STEP_MESSAGES: Record<PurchaseStep, string> = {
   purchasing: "🎫 Purchasing ticket...",
   waiting_for_funds: "⏳ Waiting for funds to arrive...",
   completing_payment: "✅ Completing payment...",
+  setting_up_stealth: "🔑 Setting up stealth wallet...",
   success: "🎉 Ticket purchased successfully!",
   error: "❌ Purchase failed",
   emergency_recovery: "🚨 Emergency recovery available"

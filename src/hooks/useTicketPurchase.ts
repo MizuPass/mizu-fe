@@ -1,11 +1,11 @@
 import { useCallback, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
-import { parseUnits, createWalletClient, http, type Address } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { sepolia } from 'viem/chains';
+// import { parseUnits, createWalletClient, http, type Address } from 'viem';
+// import { privateKeyToAccount } from 'viem/accounts';
+// import { sepolia } from 'viem/chains';
 import { useTicketPurchaseStore } from '../stores/ticketPurchaseStore';
 import type { PurchaseParams, StealthAddress, TicketData } from '../types/ticket';
-import { StealthAddressService } from '../utils/stealthAddress';
+// import { StealthAddressService } from '../utils/stealthAddress';
 import { 
   EVENT_CONTRACT_ABI, 
   ERC20_ABI, 
@@ -23,7 +23,7 @@ export const useTicketPurchase = () => {
     error,
     isLoading,
     stealthAddress,
-    stealthPrivateKey,
+    // stealthPrivateKey,
     emergencyRecoveryAvailable,
     currentEventAddress,
     setCurrentStep,
@@ -34,7 +34,7 @@ export const useTicketPurchase = () => {
     setPurchaseTxHash,
     setCompleteTxHash,
     setTokenId,
-    setEmergencyRecovery,
+    // setEmergencyRecovery,
     setCurrentEventAddress,
     resetPurchaseState,
     addTicket,

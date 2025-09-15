@@ -10,7 +10,6 @@ interface SuccessDisplayProps {
 export const SuccessDisplay: React.FC<SuccessDisplayProps> = ({
   eventName,
   ticketPrice,
-  onClose,
 }) => {
   const [showTicket, setShowTicket] = useState(false);
 
