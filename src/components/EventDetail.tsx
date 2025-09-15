@@ -17,10 +17,20 @@ interface EventDetailProps {
 export function EventDetail({ event, onBack }: EventDetailProps) {
   const [showPurchaseFlow, setShowPurchaseFlow] = useState(false)
   const [hasPurchased] = useState(false)
+  const [isJoinLoading, setIsJoinLoading] = useState(false)
 
-  // Handle join event button click - opens purchase flow or shows error
-  const handleJoinEvent = () => {
-    if (event.status === 'sold-out') return
+  // Handle join event button click - simulate blockchain confirmation delay
+  const handleJoinEvent = async () => {
+    if (event.status === 'sold-out' || isJoinLoading) return
+    
+    setIsJoinLoading(true)
+    
+    // Random delay between 1-4 seconds to simulate blockchain confirmation
+    const delay = Math.random() * 3000 + 1000 // 1000ms + 0-3000ms = 1-4 seconds
+    
+    await new Promise(resolve => setTimeout(resolve, delay))
+    
+    setIsJoinLoading(false)
     setShowPurchaseFlow(true)
   }
 
@@ -156,12 +166,14 @@ export function EventDetail({ event, onBack }: EventDetailProps) {
       <div className="flex flex-col sm:flex-row gap-3 mb-3">
           <button
             onClick={handleJoinEvent}
-            disabled={event.status === 'sold-out' || hasPurchased}
+            disabled={event.status === 'sold-out' || hasPurchased || isJoinLoading}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 font-bold rounded-lg transition-all duration-200 ${
               hasPurchased
                 ? 'bg-green-600 text-white cursor-default'
                 : event.status === 'sold-out'
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : isJoinLoading
+                ? 'opacity-80 cursor-not-allowed'
                 : 'text-white hover:scale-105 shadow-lg'
             }`}
             style={{
@@ -180,6 +192,11 @@ export function EventDetail({ event, onBack }: EventDetailProps) {
               <>
                 <img src="/mizuIcons/mizu-sad.svg" alt="Sold Out" className="w-5 h-5" />
                 Sold Out
+              </>
+            ) : isJoinLoading ? (
+              <>
+                <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-5 h-5 animate-spin" />
+                <span>Confirming on blockchain...</span>
               </>
             ) : (
               <>
