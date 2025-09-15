@@ -84,6 +84,9 @@ function AppEventDetailPage() {
     price: formatEventPrice(apiEventData.ticketPrice),
     date: formatEventDateTime(apiEventData.eventDate),
     bgColor: 'white',
+    // Add purchase flow data
+    eventContract: apiEventData.eventContract,
+    ticketPrice: apiEventData.ticketPrice,
   }
 
   const handleBack = () => {

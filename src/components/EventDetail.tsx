@@ -1,29 +1,33 @@
 import { MapPin, Clock, Users, Star } from 'lucide-react'
 import type { Event } from '../constants/mockEvents'
 import { useState } from 'react'
+import { TicketPurchaseFlow } from './TicketPurchase/TicketPurchaseFlow'
+
+// Extended Event type with purchase flow properties
+interface ExtendedEvent extends Event {
+  eventContract?: string
+  ticketPrice?: string | number
+}
 
 interface EventDetailProps {
-  event: Event
+  event: ExtendedEvent
   onBack: () => void
 }
 
 export function EventDetail({ event, onBack }: EventDetailProps) {
-  const [isJoining, setIsJoining] = useState(false)
-  const [hasJoined, setHasJoined] = useState(false)
+  const [showPurchaseFlow, setShowPurchaseFlow] = useState(false)
+  const [hasPurchased, setHasPurchased] = useState(false)
 
-  const handleJoinEvent = async () => {
+  // Handle join event button click - opens purchase flow or shows error
+  const handleJoinEvent = () => {
     if (event.status === 'sold-out') return
-    
-    setIsJoining(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setIsJoining(false)
-    setHasJoined(true)
+    setShowPurchaseFlow(true)
   }
 
-
+  // Handle purchase flow close
+  const handleClosePurchaseFlow = () => {
+    setShowPurchaseFlow(false)
+  }
   const getStatusText = (status: string) => {
     switch (status) {
       case 'available': return 'Available Now'
@@ -152,28 +156,23 @@ export function EventDetail({ event, onBack }: EventDetailProps) {
       <div className="flex flex-col sm:flex-row gap-3 mb-3">
           <button
             onClick={handleJoinEvent}
-            disabled={event.status === 'sold-out' || isJoining || hasJoined}
+            disabled={event.status === 'sold-out' || hasPurchased}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 font-bold rounded-lg transition-all duration-200 ${
-              hasJoined
+              hasPurchased
                 ? 'bg-green-600 text-white cursor-default'
-                : event.status === 'sold-out' || isJoining
+                : event.status === 'sold-out'
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'text-white hover:scale-105 shadow-lg'
             }`}
             style={{
-              backgroundColor: hasJoined ? '#16a34a' : event.status === 'sold-out' || isJoining ? undefined : 'var(--primary)'
+              backgroundColor: hasPurchased ? '#16a34a' : event.status === 'sold-out' ? undefined : 'var(--primary)'
             }}
           >
-            {isJoining ? (
+            {hasPurchased ? (
               <>
-                <img src="/mizuIcons/mizu-tired.svg" alt="Processing" className="w-5 h-5 animate-spin" />
-                Processing...
-              </>
-            ) : hasJoined ? (
-              <>
-                <img src="/mizuIcons/mizu-success.svg" alt="Joined" className="w-5 h-5" />
+                <img src="/mizuIcons/mizu-success.svg" alt="Purchased" className="w-5 h-5" />
                 <div className="flex flex-col items-center">
-                  <span>Successfully Joined!</span>
+                  <span>🎫 Ticket Purchased!</span>
                   <span className="text-sm font-normal">Welcome to {event.title}! 🎉</span>
                 </div>
               </>
@@ -185,7 +184,7 @@ export function EventDetail({ event, onBack }: EventDetailProps) {
             ) : (
               <>
                 <img src="/mizuIcons/mizu-love.svg" alt="Join" className="w-5 h-5" />
-                {event.status === 'upcoming' ? 'Get Notified' : 'Join Event'}
+                {event.status === 'upcoming' ? 'Get Notified' : '🎫 Join Event'}
               </>
             )}
           </button>
@@ -194,22 +193,35 @@ export function EventDetail({ event, onBack }: EventDetailProps) {
         </div>
 
       {/* Success Message */}
-      {hasJoined && (
-        <div className=" bg-green-50 border-2 border-green-200 rounded-2xl p-6 shadow-lg">
+      {hasPurchased && (
+        <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 shadow-lg">
           <div className="flex items-center gap-4">
             <img src="/mizuIcons/mizu-success.svg" alt="Success" className="w-12 h-12" />
             <div>
               <p className="text-green-700">
-                Your participation has been confirmed. You'll receive event updates and access details via your connected wallet.
+                🎫 Your ticket has been purchased successfully! This transaction was completed with privacy protection using stealth addresses.
               </p>
             </div>
           </div>
           <div className="mt-4 p-4 bg-green-100 rounded-xl">
             <p className="text-sm text-green-800">
-              <strong>Next Steps:</strong> Keep your wallet connected and check back closer to the event date for access instructions and any updates.
+              <strong>Next Steps:</strong> Your ticket is stored securely in your browser. Keep your wallet connected and check back closer to the event date for access instructions.
             </p>
           </div>
         </div>
+      )}
+
+      {/* Ticket Purchase Flow Modal */}
+      {event.eventContract && (
+        <TicketPurchaseFlow
+          eventAddress={event.eventContract}
+          eventName={event.title}
+          ticketPrice={event.ticketPrice?.toString() || '0'}
+          eventDate={event.date}
+          gasAmount="0.001" // Default gas amount for ticket purchase
+          isOpen={showPurchaseFlow}
+          onClose={handleClosePurchaseFlow}
+        />
       )}
     </div>
   )

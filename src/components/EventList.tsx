@@ -3,9 +3,8 @@ import { useRef, useState, useEffect } from 'react'
 import { useActiveEvents, transformEventForComponent } from '../hooks/useEventsApi'
 import { formatEventPrice, formatEventDateTime } from '../services/eventsApi'
 import type { Event } from '../constants/mockEvents'
-import { TicketPurchaseFlow } from './TicketPurchase/TicketPurchaseFlow'
 
-// Extended Event type with purchase flow properties
+// Extended Event type for display
 interface ExtendedEvent extends Event {
   eventContract?: string
   ticketPrice?: string | number
@@ -20,8 +19,6 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
-  const [selectedEventForPurchase, setSelectedEventForPurchase] = useState<ExtendedEvent | null>(null)
-  const [showPurchaseFlow, setShowPurchaseFlow] = useState(false)
 
   // Fetch active events from API
   const { data: apiEvents, isLoading, isError, error } = useActiveEvents()
@@ -105,18 +102,6 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
     checkScrollButtons()
   }, [events.length])
 
-  // Handle buy ticket button click
-  const handleBuyTicket = (event: ExtendedEvent, e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent event card click
-    setSelectedEventForPurchase(event)
-    setShowPurchaseFlow(true)
-  }
-
-  // Handle purchase flow close
-  const handleClosePurchaseFlow = () => {
-    setShowPurchaseFlow(false)
-    setSelectedEventForPurchase(null)
-  }
 
   // Loading state
   if (isLoading) {
@@ -297,18 +282,7 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  {/* Buy Ticket Button - Only show for available events */}
-                  {event.status === 'available' && (
-                    <button 
-                      onClick={(e) => handleBuyTicket(event, e)}
-                      className="w-full font-bold py-2 rounded-lg transition-all duration-200 text-sm text-white hover:scale-105 shadow-lg"
-                      style={{ backgroundColor: 'var(--primary)' }}
-                    >
-                      🎫 Buy Ticket
-                    </button>
-                  )}
-                  
-                  {/* View Details Button */}
+                  {/* View Details Button - Single entry point for ticket purchase */}
                   <button 
                     onClick={(e) => {
                       e.stopPropagation() // Prevent triggering the parent div's onClick
@@ -318,12 +292,10 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
                     className={`w-full font-bold py-2 rounded-lg transition-all duration-200 text-sm ${
                       event.status === 'sold-out'
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : event.status === 'available' 
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         : 'text-white hover:scale-105 shadow-lg'
                     }`}
                     style={{
-                      backgroundColor: event.status === 'upcoming' ? 'var(--primary)' : undefined
+                      backgroundColor: event.status !== 'sold-out' ? 'var(--primary)' : undefined
                     }}
                     disabled={event.status === 'sold-out'}
                   >
@@ -375,19 +347,6 @@ export function EventList({ onEventClick, onBackToOnboarding }: EventListProps) 
           </div>
         </div>
       </div>
-
-      {/* Ticket Purchase Flow Modal */}
-      {selectedEventForPurchase && (
-        <TicketPurchaseFlow
-          eventAddress={selectedEventForPurchase.eventContract || '0x0000000000000000000000000000000000000000'}
-          eventName={selectedEventForPurchase.title}
-          ticketPrice={selectedEventForPurchase.ticketPrice?.toString() || '0'}
-          eventDate={selectedEventForPurchase.date}
-          gasAmount="0.001" // Default gas amount for ticket purchase
-          isOpen={showPurchaseFlow}
-          onClose={handleClosePurchaseFlow}
-        />
-      )}
     </>
   )
 }

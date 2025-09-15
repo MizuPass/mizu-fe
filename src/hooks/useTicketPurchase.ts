@@ -1,6 +1,8 @@
 import { useCallback, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
-import { parseUnits, formatUnits } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
+import { parseUnits, createWalletClient, http, type Address } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
 import { useTicketPurchaseStore } from '../stores/ticketPurchaseStore';
 import type { PurchaseParams, StealthAddress, TicketData } from '../types/ticket';
 import { StealthAddressService } from '../utils/stealthAddress';
@@ -23,6 +25,7 @@ export const useTicketPurchase = () => {
     stealthAddress,
     stealthPrivateKey,
     emergencyRecoveryAvailable,
+    currentEventAddress,
     setCurrentStep,
     setProgress,
     setError,
@@ -32,16 +35,81 @@ export const useTicketPurchase = () => {
     setCompleteTxHash,
     setTokenId,
     setEmergencyRecovery,
+    setCurrentEventAddress,
     resetPurchaseState,
     addTicket,
     getTicketByEventAddress,
   } = useTicketPurchaseStore();
 
   const { writeContract, data: writeData, isPending: isWritePending, error: contractError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming } = useWaitForTransactionReceipt({
     hash: writeData,
   });
 
+  // Listen for StealthAddressFunded event to auto-complete payment
+  useWatchContractEvent({
+    address: currentEventAddress as `0x${string}` | undefined,
+    abi: EVENT_CONTRACT_ABI,
+    eventName: 'StealthAddressFunded',
+    pollingInterval: 1000, // Poll every 1 second
+    onLogs(logs) {
+      console.log('🎯 StealthAddressFunded event received:', logs);
+      console.log('🎯 Event listener config:', { 
+        currentEventAddress, 
+        stealthAddress, 
+        currentStep, 
+        enabled: !!stealthAddress && currentStep === 'waiting_for_funds' 
+      });
+      
+      for (const log of logs) {
+        const { stealthAddress: eventStealthAddr } = (log as any).args as { stealthAddress: string };
+        
+        // Check if this event is for our stealth address
+        if (eventStealthAddr.toLowerCase() === stealthAddress?.toLowerCase()) {
+          console.log('✅ Our stealth address has been funded, completing payment automatically');
+          
+          // Get the event address from the log
+          const eventAddress = log.address;
+          
+          // Complete the payment automatically
+          completePayment(eventAddress).then((success) => {
+            const resolver = (window as any).stealthPaymentResolver;
+            if (resolver) {
+              clearTimeout(resolver.timeout);
+              if (success) {
+                resolver.resolve(true);
+              } else {
+                resolver.reject(new Error('Failed to complete payment'));
+              }
+              delete (window as any).stealthPaymentResolver;
+            }
+          }).catch((error) => {
+            console.error('❌ Auto payment completion failed:', error);
+            const resolver = (window as any).stealthPaymentResolver;
+            if (resolver) {
+              clearTimeout(resolver.timeout);
+              resolver.reject(error);
+              delete (window as any).stealthPaymentResolver;
+            }
+          });
+          
+          break;
+        }
+      }
+    },
+    enabled: !!stealthAddress && currentStep === 'waiting_for_funds',
+  });
+
+  // Debug: Log event listener status
+  useEffect(() => {
+    const isEnabled = !!stealthAddress && currentStep === 'waiting_for_funds';
+    console.log('🎯 Event listener status:', {
+      currentEventAddress,
+      stealthAddress,
+      currentStep,
+      isEnabled
+    });
+  }, [currentEventAddress, stealthAddress, currentStep]);
   // Track transaction hash when it becomes available
   useEffect(() => {
     if (writeData && currentStep === 'purchasing') {
@@ -50,20 +118,41 @@ export const useTicketPurchase = () => {
     }
   }, [writeData, currentStep, setPurchaseTxHash]);
 
-  // Track contract errors
+  // Track contract errors with detailed error handling
   useEffect(() => {
     if (contractError) {
       console.error('❌ Contract error:', contractError);
       let message = 'Transaction failed';
+      
+      // Handle common user errors
       if (contractError.message.includes('User rejected') || contractError.message.includes('user rejected')) {
         message = 'Transaction was rejected by user';
       } else if (contractError.message.includes('insufficient funds')) {
         message = 'Insufficient funds for transaction';
       } else if (contractError.message.includes('gas')) {
-        message = 'Gas estimation failed';
+        message = 'Gas estimation failed - check gas amount';
+      }
+      // Handle potential contract-specific errors
+      else if (contractError.message.includes('regular user')) {
+        message = 'Only regular users can purchase tickets. Please check your user role registration.';
+      } else if (contractError.message.includes('inactive') || contractError.message.includes('not active')) {
+        message = 'This event is not currently active for ticket purchases.';
+      } else if (contractError.message.includes('sold out') || contractError.message.includes('tickets available')) {
+        message = 'No tickets available. This event is sold out.';
+      } else if (contractError.message.includes('event date') || contractError.message.includes('expired')) {
+        message = 'Tickets are no longer available. The event date has passed.';
+      } else if (contractError.message.includes('already purchased') || contractError.message.includes('duplicate')) {
+        message = 'You have already purchased a ticket for this event.';
+      } else if (contractError.message.includes('stealth address') || contractError.message.includes('invalid address')) {
+        message = 'Invalid stealth address. Please try generating a new one.';
+      } else if (contractError.message.includes('gas amount') || contractError.message.includes('invalid gas')) {
+        message = 'Invalid gas amount provided. Please adjust the gas amount.';
+      } else if (contractError.message.includes('JPYM') || contractError.message.includes('token transfer')) {
+        message = 'JPYM token transfer failed. Please ensure you have approved the contract and have sufficient balance.';
       } else {
         message = contractError.message;
       }
+      
       setError(message);
       setCurrentStep('error');
     }
@@ -91,46 +180,56 @@ export const useTicketPurchase = () => {
     }
   });
 
+  // Note: Removed unused contract read hooks to avoid TypeScript warnings
+  // These would be used for actual blockchain state checking when implemented
+
   // Validation step
+  // Validation step (MOCK)
   const validatePurchase = useCallback(async (params: PurchaseParams): Promise<boolean> => {
     try {
       setCurrentStep('validating');
       setError(null);
       setProgress(5);
       
+      console.log('🔍 Validating purchase...');
+      
+      // Mock delay for validation (2 seconds)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       if (!isConnected || !address) {
         throw new Error('Please connect your wallet');
       }
 
-      // Check if user role is registered (should be 1 or 2, not 0)
+      // Check if user role is registered and is a regular user (role = 2)
       if (!userRole || userRole === 0) {
         throw new Error('Please register your user role first in your profile');
       }
+      
+      // Check if user is a regular user (not an event creator)
+      if (userRole !== 2) { // UserRole.REGULAR_USER = 2
+        throw new Error('Only regular users can purchase tickets. Event creators cannot buy tickets.');
+      }
 
-      // Check if user already has a ticket for this event
+      // Check if user already has a ticket for this event (local storage)
       const existingTicket = getTicketByEventAddress(params.eventAddress);
       if (existingTicket) {
         throw new Error('You already have a ticket for this event');
       }
 
-      // Check JPYM balance
+      // Mock JPYM balance check
       if (jpymBalance && params.ticketPrice) {
-        // JPYM uses 4 decimals, so jpymBalance is in 1e4 format from contract
-        // params.ticketPrice is also in 1e4 format from API
-        const ticketPriceJPYM = Number(params.ticketPrice) / 1e4; // Convert API format to JPYM
-        const platformFeeJPYM = 1; // 1 JPYM platform fee
+        const ticketPriceJPYM = Number(params.ticketPrice) / 1e4; 
+        const platformFeeJPYM = 1; 
         const totalCostJPYM = ticketPriceJPYM + platformFeeJPYM;
-        const totalCostRaw = BigInt(Math.floor(totalCostJPYM * 1e4)); // Convert back to 1e4 format for comparison
-        const userBalanceRaw = BigInt(jpymBalance.toString()); // Already in 1e4 format from contract
+        const totalCostRaw = BigInt(Math.floor(totalCostJPYM * 1e4)); 
+        const userBalanceRaw = BigInt(jpymBalance.toString()); 
         
-        console.log('💰 JPYM Balance Check:', {
-          rawTicketPrice: params.ticketPrice,
-          ticketPriceJPYM: ticketPriceJPYM,
-          userBalanceJPYM: (Number(jpymBalance.toString()) / 1e4).toFixed(2), // Convert to display format
-          totalCostJPYM: totalCostJPYM.toFixed(2),
-          userBalanceRaw: userBalanceRaw.toString(),
-          totalCostRaw: totalCostRaw.toString(),
-          hasSufficientBalance: userBalanceRaw >= totalCostRaw
+        console.log('💰 JPYM Balance Check (Mock):', {
+          ticketPrice: ticketPriceJPYM + ' JPYM',
+          platformFee: platformFeeJPYM + ' JPYM',
+          totalCost: totalCostJPYM.toFixed(2) + ' JPYM',
+          userBalance: (Number(jpymBalance.toString()) / 1e4).toFixed(2) + ' JPYM',
+          sufficient: userBalanceRaw >= totalCostRaw
         });
         
         if (userBalanceRaw < totalCostRaw) {
@@ -141,6 +240,7 @@ export const useTicketPurchase = () => {
       }
 
       console.log('✅ Purchase validation passed');
+      setProgress(10);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Validation failed';
@@ -151,19 +251,31 @@ export const useTicketPurchase = () => {
     }
   }, [isConnected, address, userRole, getTicketByEventAddress, jpymBalance, setCurrentStep, setError, setProgress]);
 
-  // Generate stealth address
+  // Generate stealth address (MOCK)
   const generateStealth = useCallback(async (): Promise<StealthAddress | null> => {
     try {
       setCurrentStep('generating_stealth');
       setProgress(10);
       
-      const stealthData = StealthAddressService.generateStealthAddress();
-      setStealthData(stealthData.address, stealthData.privateKey);
+      console.log('🔐 Generating stealth address...');
       
-      console.log('✅ Stealth address generated:', stealthData.address);
-      return stealthData;
+      // Mock delay for realism (3 seconds)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Generate mock stealth address
+      const mockStealthData = {
+        address: `0x${Math.random().toString(16).substring(2, 42).padStart(40, '0')}`,
+        privateKey: `0x${Math.random().toString(16).substring(2, 66).padStart(64, '0')}`,
+        ephemeralPublicKey: `0x${Math.random().toString(16).substring(2, 66).padStart(64, '0')}`
+      };
+      
+      setStealthData(mockStealthData.address, mockStealthData.privateKey);
+      
+      console.log('✅ Mock stealth address generated:', mockStealthData.address);
+      setProgress(20);
+      return mockStealthData;
     } catch (error) {
-      const message = 'Failed to generate stealth address';
+      const message = error instanceof Error ? error.message : 'Failed to generate stealth address';
       setError(message);
       setCurrentStep('error');
       console.error('❌ Stealth generation failed:', error);
@@ -171,130 +283,85 @@ export const useTicketPurchase = () => {
     }
   }, [setCurrentStep, setProgress, setStealthData, setError]);
 
-  // Approve JPYM tokens
+  // Approve JPYM tokens (MOCK)
   const approveJPYM = useCallback(async (eventAddress: string, amount: string): Promise<boolean> => {
     try {
       setCurrentStep('approving_mjpy');
       setProgress(30);
 
-      // JPYM uses 4 decimals, so convert amount to 1e4 format
       const amountJPYM = parseFloat(amount);
-      const amountRaw = BigInt(Math.floor(amountJPYM * 1e4)); // Convert to 1e4 format
       
       console.log('🔄 Approving JPYM tokens...', { 
         eventAddress, 
-        amountJPYM: amountJPYM + ' JPYM',
-        amountRaw: amountRaw.toString() + ' (raw 1e4 format)'
+        amount: amountJPYM + ' JPYM'
       });
       
-      await writeContract({
-        address: JPYM_TOKEN_ADDRESS,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [eventAddress as `0x${string}`, amountRaw],
-      });
-
-      console.log('✅ JPYM approval transaction submitted');
+      // Mock delay for realism (4 seconds)
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // Generate mock transaction hash
+      const mockTxHash = `0x${Math.random().toString(16).substring(2, 66).padStart(64, '0')}`;
+      
+      console.log('✅ Mock JPYM approval completed:', mockTxHash);
+      setProgress(50);
       return true;
     } catch (error) {
       console.error('❌ JPYM approval failed:', error);
-      
-      let message = 'Failed to approve JPYM';
-      if (error instanceof Error) {
-        if (error.message.includes('User rejected') || error.message.includes('user rejected')) {
-          message = 'JPYM approval was rejected by user';
-        } else if (error.message.includes('insufficient funds')) {
-          message = 'Insufficient funds for approval transaction';
-        } else {
-          message = 'JPYM approval failed: ' + error.message;
-        }
-      }
-      
-      setError(message);
+      setError('Failed to approve JPYM');
       setCurrentStep('error');
       return false;
     }
-  }, [writeContract, setCurrentStep, setProgress, setError]);
+  }, [setCurrentStep, setProgress, setError]);
 
-  // Main purchase transaction (Phase 1)
+  // Main purchase transaction (Phase 1) - MOCK
   const purchaseTicket = useCallback(async (params: PurchaseParams, stealthAddr: string): Promise<string | null> => {
     try {
       setCurrentStep('purchasing');
       setProgress(60);
 
-      const gasAmountWei = parseUnits(params.gasAmount, 18);
-
       console.log('🔄 Initiating ticket purchase...', { 
         eventAddress: params.eventAddress, 
         stealthAddress: stealthAddr,
-        gasAmount: params.gasAmount + ' ETH',
-        gasAmountWei: gasAmountWei.toString()
+        gasAmount: params.gasAmount + ' ETH'
       });
       
-      await writeContract({
-        address: params.eventAddress as `0x${string}`,
-        abi: EVENT_CONTRACT_ABI,
-        functionName: 'purchaseTicket',
-        args: [stealthAddr as `0x${string}`, gasAmountWei],
-        value: gasAmountWei, // Send ETH for gas
-      });
-
-      // The transaction hash will be available in writeData after the call
-      console.log('✅ Purchase transaction submitted successfully');
-      return 'pending'; // Return a placeholder - the actual hash will be in writeData
+      // Mock delay for realism (5 seconds)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Generate mock transaction hash
+      const mockTxHash = `0x${Math.random().toString(16).substring(2, 66).padStart(64, '0')}`;
+      setPurchaseTxHash(mockTxHash);
+      
+      console.log('✅ Mock purchase transaction completed:', mockTxHash);
+      console.log('💰 Stealth address funded with JPYM and gas');
+      setProgress(70);
+      return mockTxHash;
     } catch (error) {
       console.error('❌ Purchase transaction failed:', error);
-      
-      // Provide more detailed error information
-      let message = 'Failed to purchase ticket';
-      if (error instanceof Error) {
-        message = error.message;
-        // Check for common Web3 errors
-        if (error.message.includes('User rejected') || error.message.includes('user rejected')) {
-          message = 'Transaction was rejected by user';
-        } else if (error.message.includes('insufficient funds')) {
-          message = 'Insufficient funds for transaction';
-        } else if (error.message.includes('gas')) {
-          message = 'Gas estimation failed - check gas amount';
-        } else if (error.message.includes('revert')) {
-          message = 'Transaction reverted - ' + error.message;
-        } else if (error.message.includes('network')) {
-          message = 'Network error - please try again';
-        }
-      }
-      
-      setError(message);
+      setError('Failed to purchase ticket');
       setCurrentStep('error');
       return null;
     }
-  }, [writeContract, setCurrentStep, setProgress, setError]);
+  }, [setCurrentStep, setProgress, setError, setPurchaseTxHash]);
 
-  // Wait for funds at stealth address
-  const waitForStealthFunds = useCallback(async (stealthAddr: string, expectedAmount: bigint): Promise<boolean> => {
+  // Wait for StealthAddressFunded event and auto-complete payment (MOCK)
+  const waitForStealthFunds = useCallback(async (stealthAddr: string, eventAddress: string): Promise<boolean> => {
     try {
       setCurrentStep('waiting_for_funds');
       setProgress(75);
 
-      console.log('⏳ Waiting for JPYM funds at stealth address...', { 
+      console.log('⏳ Simulating stealth address funding...', { 
         stealthAddr, 
-        expectedAmount: formatUnits(expectedAmount, 18) + ' JPYM' 
+        eventAddress 
       });
 
-      // Use the service to wait for JPYM balance
-      const received = await StealthAddressService.waitForMJPYBalance(
-        stealthAddr,
-        expectedAmount,
-        JPYM_TOKEN_ADDRESS,
-        undefined as any, // TODO: Get provider from wagmi config
-        60000 // 60 second timeout
-      );
-
-      if (!received) {
-        throw new Error('Timeout waiting for funds at stealth address');
-      }
-
-      console.log('✅ JPYM funds received at stealth address');
-      return true;
+      // Mock delay for stealth address funding (3 seconds)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      console.log('✅ Mock stealth address funded! Auto-completing payment...');
+      
+      // Automatically call complete payment
+      return await completePayment(eventAddress);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed waiting for stealth funds';
       setError(message);
@@ -304,59 +371,49 @@ export const useTicketPurchase = () => {
     }
   }, [setCurrentStep, setProgress, setError]);
 
-  // Complete payment (Phase 2)
-  const completePayment = useCallback(async (params: PurchaseParams): Promise<boolean> => {
+  // Complete payment (Phase 2) - MOCK
+  const completePayment = useCallback(async (eventAddress: string): Promise<boolean> => {
     try {
-      setCurrentStep('setting_up_stealth');
+      setCurrentStep('completing_payment');
       setProgress(85);
 
-      if (!stealthPrivateKey) {
-        throw new Error('No stealth private key available');
-      }
-
-      setCurrentStep('completing_payment');
-      setProgress(95);
-
       console.log('🔄 Completing payment from stealth address...');
-
-      // Note: In a real implementation, you'd need to create a new signer with the stealth private key
-      // and call completePayment with that signer. For now, we'll simulate this.
+      console.log('💰 Stealth wallet paying organizer and platform fee...');
       
-      // TODO: Implement stealth wallet signer
-      // const stealthWallet = new ethers.Wallet(stealthPrivateKey, provider);
-      // await stealthWallet.sendTransaction({
-      //   to: params.eventAddress,
-      //   data: eventContract.interface.encodeFunctionData('completePayment', [])
-      // });
-
-      // Simulate completion for now
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      const mockTxHash = '0x' + Math.random().toString(16).substring(2, 66);
-      setCompleteTxHash(mockTxHash);
-
-      // Mock token ID
-      const tokenId = Math.floor(Math.random() * 1000).toString();
+      // Mock delay for payment completion (4 seconds) - longer single step to avoid glitch
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // Generate mock completion transaction hash and token ID
+      const mockCompleteTxHash = `0x${Math.random().toString(16).substring(2, 66).padStart(64, '0')}`;
+      const tokenId = Math.floor(Math.random() * 1000 + 1).toString();
+      
+      setCompleteTxHash(mockCompleteTxHash);
       setTokenId(tokenId);
+      setProgress(100);
 
-      console.log('✅ Payment completed successfully!', { tokenId });
+      console.log('✅ Payment completed successfully!', { 
+        completeTxHash: mockCompleteTxHash, 
+        tokenId,
+        eventAddress 
+      });
+      console.log('🎫 NFT Ticket minted to stealth address!');
+      
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to complete payment';
       setError(message);
-      setEmergencyRecovery(true);
-      setCurrentStep('emergency_recovery');
+      setCurrentStep('error');
       console.error('❌ Payment completion failed:', error);
-      console.log('🆘 Emergency recovery is now available');
       return false;
     }
-  }, [stealthPrivateKey, setCurrentStep, setProgress, setCompleteTxHash, setTokenId, setError, setEmergencyRecovery]);
+  }, [setCurrentStep, setProgress, setCompleteTxHash, setTokenId, setError]);
 
   // Main purchase flow orchestrator
   const startPurchase = useCallback(async (params: PurchaseParams) => {
     try {
       setLoading(true);
       resetPurchaseState();
+      setCurrentEventAddress(params.eventAddress);
 
       console.log('🚀 Starting purchase with params:', params);
 
@@ -383,16 +440,12 @@ export const useTicketPurchase = () => {
       const txHash = await purchaseTicket(params, stealthData.address);
       if (!txHash) return;
 
-      // Phase 5: Wait for funds at stealth address
-      const totalCostWei = parseUnits(totalCostJPYM.toString(), 18);
-      const fundsReceived = await waitForStealthFunds(stealthData.address, totalCostWei);
-      if (!fundsReceived) return;
+      // Phase 5: Wait for funds at stealth address and auto-complete payment
+      const paymentCompleted = await waitForStealthFunds(stealthData.address, params.eventAddress);
+      if (!paymentCompleted) return;
 
-      // Phase 6: Complete payment (Phase 2 of contract)
-      const completed = await completePayment(params);
-      if (!completed) return;
 
-      // Phase 7: Save ticket data
+      // Phase 6: Save ticket data
       const ticketData: TicketData = {
         eventAddress: params.eventAddress,
         stealthAddress: stealthData.address,
@@ -425,6 +478,7 @@ export const useTicketPurchase = () => {
   }, [
     setLoading,
     resetPurchaseState,
+    setCurrentEventAddress,
     validatePurchase,
     generateStealth,
     approveJPYM,
@@ -442,7 +496,7 @@ export const useTicketPurchase = () => {
     try {
       console.log('🆘 Initiating emergency recovery...');
 
-      await writeContract({
+      writeContract({
         address: eventAddress as `0x${string}`,
         abi: EVENT_CONTRACT_ABI,
         functionName: 'emergencyCompletePayment',
@@ -471,7 +525,7 @@ export const useTicketPurchase = () => {
     error,
     isLoading: isLoading || isWritePending || isConfirming,
     emergencyRecoveryAvailable,
-    
+    stealthAddress,    
     // Actions
     startPurchase,
     resetPurchaseState,

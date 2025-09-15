@@ -7,7 +7,6 @@ export type PurchaseStep =
   | 'approving_mjpy'
   | 'purchasing'
   | 'waiting_for_funds'
-  | 'setting_up_stealth'
   | 'completing_payment'
   | 'success'
   | 'error'
@@ -67,6 +66,7 @@ export interface TicketPurchaseState {
   completeTxHash?: string;
   tokenId?: string;
   emergencyRecoveryAvailable?: boolean;
+  currentEventAddress?: string | null;
 }
 
 export interface TicketData {
@@ -93,7 +93,6 @@ export const PURCHASE_STEP_MESSAGES: Record<PurchaseStep, string> = {
   approving_mjpy: "💰 Approving MJPY spending...",
   purchasing: "🎫 Purchasing ticket...",
   waiting_for_funds: "⏳ Waiting for funds to arrive...",
-  setting_up_stealth: "🛠️ Setting up stealth wallet...",
   completing_payment: "✅ Completing payment...",
   success: "🎉 Ticket purchased successfully!",
   error: "❌ Purchase failed",

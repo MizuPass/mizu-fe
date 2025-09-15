@@ -13,6 +13,7 @@ interface TicketPurchaseStore extends TicketPurchaseState {
   setCompleteTxHash: (hash: string) => void;
   setTokenId: (tokenId: string) => void;
   setEmergencyRecovery: (available: boolean) => void;
+  setCurrentEventAddress: (address: string | null) => void;
   resetPurchaseState: () => void;
   
   // Ticket storage
@@ -30,6 +31,7 @@ const initialState: TicketPurchaseState = {
   error: null,
   isLoading: false,
   emergencyRecoveryAvailable: false,
+  currentEventAddress: null,
 };
 
 // Helper function to safely access localStorage
@@ -72,6 +74,7 @@ export const useTicketPurchaseStore = create<TicketPurchaseStore>()(
       setCompleteTxHash: (hash) => set({ completeTxHash: hash }),
       setTokenId: (tokenId) => set({ tokenId }),
       setEmergencyRecovery: (available) => set({ emergencyRecoveryAvailable: available }),
+      setCurrentEventAddress: (address) => set({ currentEventAddress: address }),
       
       resetPurchaseState: () => set({
         ...initialState,

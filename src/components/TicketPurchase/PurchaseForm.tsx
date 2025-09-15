@@ -26,86 +26,141 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Event Information */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-lg text-gray-800 mb-2">{eventName}</h3>
-        <p className="text-gray-600 text-sm">Date: {eventDate}</p>
-        <div className="mt-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            Privacy Protected
-          </span>
+      {/* Cute Header */}
+      <div className="text-center mb-6">
+        <div className="mb-3">
+          <img src="/mizuIcons/mizu-www.svg" alt="Ticket" className="w-16 h-16 mx-auto animate-bounce" />
         </div>
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-3 mb-2">
+          <img src="/mizuIcons/mizu-love.svg" alt="Purchase" className="w-8 h-8 animate-pulse" />
+          Join Event
+        </h2>
+        <p className="text-sm text-gray-600">Get your privacy-protected ticket!</p>
       </div>
 
-      {/* Cost Breakdown */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Ticket Price:</span>
-          <span className="font-semibold">{ticketPriceJPYM} MJPY</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600">Platform Fee:</span>
-          <span className="font-semibold">{platformFee} MJPY</span>
-        </div>
-        <hr className="border-gray-200" />
-        <div className="flex justify-between items-center text-lg">
-          <span className="font-semibold">Total Cost:</span>
-          <span className="font-semibold text-blue-600">{totalCost} MJPY</span>
-        </div>
-      </div>
-
-      {/* Gas Amount Configuration */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Gas Amount (ETH)
-        </label>
-        <input
-          type="number"
-          step="0.001"
-          value={gasAmount}
-          onChange={(e) => onGasAmountChange(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="0.001"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          ETH amount sent to stealth address for gas fees
-        </p>
-      </div>
-
-      {/* Privacy Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+      {/* Event Information Card */}
+      <div className="bg-gradient-to-r from-pink-50 to-purple-50 border-2 border-pink-200 rounded-2xl p-6">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <img src="/mizuIcons/mizu-love.svg" alt="Event" className="w-6 h-6 animate-pulse" />
+            <h3 className="font-bold text-lg text-gray-800">{eventName}</h3>
           </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Privacy-First Purchase</h3>
-            <div className="mt-1 text-sm text-blue-700">
-              <p>Your ticket will be purchased using a stealth address to protect your privacy. The transaction cannot be linked to your main wallet.</p>
+          <div className="flex items-center justify-center gap-2 text-gray-600 mb-3">
+            <img src="/mizuIcons/mizu-success.svg" alt="Date" className="w-4 h-4" />
+            <p className="text-sm">{eventDate}</p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm border border-pink-200">
+            <img src="/mizuIcons/mizu-attention.svg" alt="Shield" className="w-4 h-4" />
+            <span className="text-xs font-medium text-pink-800">Privacy Protected</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Cost Breakdown Card */}
+      <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <img src="/mizuIcons/mizu-tired.svg" alt="Money" className="w-6 h-6" />
+          <h3 className="font-bold text-gray-800">Cost Breakdown</h3>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+            <div className="flex items-center gap-2">
+              <img src="/mizuIcons/mizu-www.svg" alt="Ticket" className="w-4 h-4" />
+              <span className="text-gray-600">Ticket Price:</span>
+            </div>
+            <span className="font-semibold text-gray-800">{ticketPriceJPYM} JPYM</span>
+          </div>
+          
+          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+            <div className="flex items-center gap-2">
+              <img src="/mizuIcons/mizu-success.svg" alt="Platform" className="w-4 h-4" />
+              <span className="text-gray-600">Platform Fee:</span>
+            </div>
+            <span className="font-semibold text-blue-600">{platformFee} JPYM</span>
+          </div>
+          
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-gradient-to-r from-green-50 to-blue-50">
+            <div className="flex justify-between items-center text-xl">
+              <div className="flex items-center gap-2">
+                <img src="/mizuIcons/mizu-love.svg" alt="Total" className="w-6 h-6 animate-pulse" />
+                <span className="font-bold text-gray-800">Total Cost:</span>
+              </div>
+              <span className="font-bold text-green-600">{totalCost} JPYM</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Purchase Button */}
+      {/* Gas Configuration Card */}
+      <div className="bg-white border-2 border-gray-100 rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <img src="/mizuIcons/mizu-attention.svg" alt="Gas" className="w-6 h-6" />
+          <h3 className="font-bold text-gray-800">Gas Configuration</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700 text-center">
+            ETH Gas Amount
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              step="0.001"
+              value={gasAmount}
+              onChange={(e) => onGasAmountChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center font-semibold"
+              placeholder="0.001"
+            />
+            <div className="absolute right-3 top-3 text-gray-500 font-medium">ETH</div>
+          </div>
+          <div className="flex items-center justify-center gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+            <img src="/mizuIcons/mizu-tired.svg" alt="Info" className="w-4 h-4" />
+            <p className="text-xs text-yellow-700 text-center">
+              ETH sent to stealth address for transaction fees
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Privacy Notice Card */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <img src="/mizuIcons/mizu-success.svg" alt="Shield" className="w-6 h-6 animate-bounce" />
+            <h3 className="font-bold text-blue-800">Privacy-First Purchase</h3>
+          </div>
+          <p className="text-sm text-blue-700 leading-relaxed">
+            Your ticket will be purchased using a <strong>stealth address</strong> to protect your privacy. 
+            The transaction cannot be linked to your main wallet!
+          </p>
+        </div>
+      </div>
+
+      {/* Cute Purchase Button */}
       <button
         onClick={onPurchase}
         disabled={isLoading}
-        className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 ${
+        className={`w-full px-6 py-3 rounded-xl text-white font-bold text-base transition-all duration-300 ${
           isLoading
             ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 shadow-lg'
+            : 'hover:scale-105'
         }`}
+        style={{ 
+          backgroundColor: isLoading ? undefined : 'var(--body1)'
+        }}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-            Processing...
+          <div className="flex items-center justify-center gap-3">
+            <img src="/mizuIcons/mizu-tired.svg" alt="Loading" className="w-5 h-5 animate-spin" />
+            <span>Processing...</span>
           </div>
         ) : (
-          `Purchase Ticket for ${totalCost} MJPY`
+          <div className="flex items-center justify-center gap-2">
+            <img src="/mizuIcons/mizu-www.svg" alt="Purchase" className="w-5 h-5" />
+            <span>Purchase Ticket for {totalCost} JPYM</span>
+            <img src="/mizuIcons/mizu-success.svg" alt="Success" className="w-5 h-5" />
+          </div>
         )}
       </button>
     </div>
